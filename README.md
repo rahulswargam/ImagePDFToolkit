@@ -3,6 +3,17 @@
 A simple, fast, offline desktop app for common image and PDF tasks — built with
 PySide6 (Qt for Python).
 
+## Download
+
+**[⬇ Download for Windows](https://github.com/rahulswargam/ImagePDFToolkit/releases/latest/download/ImagePDFToolkit-Setup.exe)**
+— always grabs the latest release. See the [Releases page](https://github.com/rahulswargam/ImagePDFToolkit/releases)
+for release notes and older versions.
+
+Windows will show a SmartScreen warning since the installer isn't
+code-signed — click **More info → Run anyway**. The installer checks for the
+Microsoft Visual C++ Redistributable and installs it automatically if it's
+missing.
+
 ## Features
 
 - **Image Resizer** — compress up to 10 images at once down to a target file
