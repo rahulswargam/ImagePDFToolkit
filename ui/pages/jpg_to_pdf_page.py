@@ -11,7 +11,7 @@ from PySide6.QtWidgets import (
 )
 
 from tools.jpg_to_pdf import convert_images_to_pdf
-from ui.widgets import AnimatedButton, DropArea
+from ui.widgets import MAX_BATCH_FILES, AnimatedButton, DropArea, clip_to_max_files
 
 EXTENSIONS = (".jpg", ".jpeg", ".png", ".bmp", ".webp")
 
@@ -42,7 +42,7 @@ class JpgToPdfPage(QWidget):
         self.drop_area = DropArea(
             EXTENSIONS,
             multiple=True,
-            placeholder="Drag & drop images here\n(order = page order)",
+            placeholder=f"Drag & drop up to {MAX_BATCH_FILES} images here\n(order = page order)",
         )
         self.drop_area.setFixedSize(280, 210)
         self.drop_area.filesDropped.connect(self.load_images)
@@ -95,12 +95,22 @@ class JpgToPdfPage(QWidget):
 
     def load_images(self, file_paths):
 
+        file_paths, truncated = clip_to_max_files(file_paths)
+
         self.input_paths = file_paths
 
         names = "\n".join(os.path.basename(path) for path in file_paths)
         self.files_label.setText(f"{len(file_paths)} image(s) selected:\n{names}")
 
         self.drop_area.setText(f"{len(file_paths)} image(s) ready")
+
+        if truncated:
+            QMessageBox.warning(
+                self,
+                "Too Many Images",
+                f"Only the first {MAX_BATCH_FILES} images were kept "
+                f"({truncated} extra image(s) were not added).",
+            )
 
     def convert(self):
 

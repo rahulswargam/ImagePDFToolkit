@@ -5,16 +5,20 @@ PySide6 (Qt for Python).
 
 ## Features
 
-- **Image Resizer** — compress an image down to a target file size (KB), with
-  a maximum-quality cap
+- **Image Resizer** — compress up to 10 images at once down to a target file
+  size (KB), with a maximum-quality cap
 - **PNG → JPG** — convert images to JPG in one click
-- **JPG → PDF** — combine one or more images into a single PDF
-- **PDF → JPG** — export every page of a PDF as a high-quality JPG
+- **JPG → PDF** — combine up to 10 images into a single PDF
+- **PDF → JPG** — export every page of up to 10 PDFs as high-quality JPGs
 - **Lock PDF** — password-protect a PDF
 - **Unlock PDF** — remove a PDF's password
+- **Settings** — light/dark/system theme, and a configurable default save
+  folder
 
-Everything runs locally — no internet connection or account required. Output
-files are saved to `Desktop\Image & PDF Toolkit`.
+Everything runs locally — no internet connection or account required. Theme
+follows your Windows setting by default. Output files are saved to
+`Desktop\Image & PDF Toolkit` unless you choose a different folder in
+Settings.
 
 ## Running from source
 
@@ -53,6 +57,7 @@ already present on the target machine.
 ```
 app.py                  Entry point
 version.py               Reads VERSION for use in the app
+settings_store.py        Persisted user settings (theme, save folder)
 ui/                      Windows, pages, shared widgets, styling
 tools/                    Image/PDF processing logic
 assets/                   App icon, tool icons, bundled font
