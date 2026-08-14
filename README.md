@@ -34,7 +34,7 @@ Building a distributable `Setup.exe` additionally requires
 
 ```bash
 pip install pyinstaller
-pyinstaller --name "ImagePDFToolkit" --onefile --windowed --icon assets/icons/app.ico --add-data "assets;assets" app.py
+pyinstaller --name "ImagePDFToolkit" --onefile --windowed --icon assets/icons/app.ico --add-data "assets;assets" --add-data "VERSION;." app.py
 ```
 
 Then download the [Visual C++ Redistributable](https://aka.ms/vs/17/release/vc_redist.x64.exe)
@@ -52,12 +52,25 @@ already present on the target machine.
 
 ```
 app.py                  Entry point
+version.py               Reads VERSION for use in the app
 ui/                      Windows, pages, shared widgets, styling
 tools/                    Image/PDF processing logic
 assets/                   App icon, tool icons, bundled font
 installer/setup.iss       Inno Setup installer script
 ```
 
+## Branches & versioning
+
+- `dev` — active development. Day-to-day changes land here first.
+- `master` — production. Only merge `dev` into `master` once a change has
+  been verified working; this is what the installer is built from.
+
+`VERSION` at the repo root is the single source of truth for the app's
+version number — both the app itself (window title, sidebar footer) and the
+installer read it from there, so it only needs to be bumped in one place.
+Bump it (following [semver](https://semver.org)) whenever you merge a
+meaningful change into `master`.
+
 ## License
 
-© 2026 Rahul Swargam. All rights reserved.
+MIT — see [LICENSE](LICENSE). © 2026 Rahul Swargam.

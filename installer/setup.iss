@@ -3,7 +3,9 @@
 ; Produces:   dist\ImagePDFToolkit-Setup.exe
 
 #define MyAppName "Image & PDF Toolkit"
-#define MyAppVersion "1.0.0"
+#define VersionFile FileOpen(SourcePath + "..\VERSION")
+#define MyAppVersion Trim(FileRead(VersionFile))
+#expr FileClose(VersionFile)
 #define MyAppExeName "ImagePDFToolkit.exe"
 
 [Setup]
