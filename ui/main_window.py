@@ -25,6 +25,7 @@ from ui.pages.png_to_jpg_page import PngToJpgPage
 from ui.pages.unlock_pdf_page import UnlockPdfPage
 from ui.styles import DARK_STYLE, LIGHT_STYLE
 from ui.widgets import AnimatedButton, Toast, ToolCard
+from version import APP_VERSION
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ICON_PATH = os.path.join(BASE_DIR, "assets", "icons", "app.ico")
@@ -50,7 +51,6 @@ PDF_TOOLS = [
 
 ALL_TOOLS = IMAGE_TOOLS + PDF_TOOLS
 
-APP_VERSION = "1.0.0"
 COPYRIGHT_TEXT = "© 2026 Rahul Swargam\nMIT License"
 
 
@@ -59,7 +59,7 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
 
-        self.setWindowTitle("Image & PDF Toolkit")
+        self.setWindowTitle(f"Image & PDF Toolkit v{APP_VERSION}")
         self.resize(1200, 760)
         self.setMinimumSize(1040, 680)
 
