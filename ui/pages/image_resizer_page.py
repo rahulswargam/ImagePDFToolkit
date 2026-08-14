@@ -1,7 +1,5 @@
 import os
 
-from PySide6.QtCore import Qt
-from PySide6.QtGui import QPixmap
 from PySide6.QtWidgets import (
     QFileDialog,
     QFrame,
@@ -14,7 +12,7 @@ from PySide6.QtWidgets import (
 )
 
 from tools.image_resizer import compress_to_target_size, format_file_size, get_image_size
-from ui.widgets import AnimatedButton, DropArea
+from ui.widgets import MAX_BATCH_FILES, AnimatedButton, DropArea, clip_to_max_files
 
 EXTENSIONS = (".jpg", ".jpeg", ".png", ".webp", ".bmp")
 
@@ -25,7 +23,7 @@ class ImageResizerPage(QWidget):
         super().__init__(parent)
 
         self.notify = notify
-        self.input_path = None
+        self.input_paths = []
 
         self.setup_ui()
 
@@ -36,7 +34,7 @@ class ImageResizerPage(QWidget):
         main_layout.setSpacing(15)
 
         # =========================
-        # FILE / PREVIEW AREA
+        # FILE SELECTION
         # =========================
 
         file_card = QFrame()
@@ -46,28 +44,28 @@ class ImageResizerPage(QWidget):
         file_layout.setContentsMargins(20, 20, 20, 20)
         file_layout.setSpacing(20)
 
-        self.preview = DropArea(
+        self.drop_area = DropArea(
             EXTENSIONS,
-            multiple=False,
-            placeholder="Drag & drop an image here\nor click Select Image",
+            multiple=True,
+            placeholder=f"Drag & drop up to {MAX_BATCH_FILES} images here\nor click Select Images",
         )
-        self.preview.setFixedSize(280, 210)
-        self.preview.filesDropped.connect(lambda paths: self.load_image(paths[0]))
+        self.drop_area.setFixedSize(280, 210)
+        self.drop_area.filesDropped.connect(self.load_images)
 
-        file_layout.addWidget(self.preview)
+        file_layout.addWidget(self.drop_area)
 
         info_layout = QVBoxLayout()
         info_layout.setSpacing(10)
 
-        select_button = AnimatedButton("Select Image")
+        select_button = AnimatedButton("Select Images")
         select_button.setObjectName("toolButton")
-        select_button.clicked.connect(self.select_image)
+        select_button.clicked.connect(self.select_images)
 
-        self.file_label = QLabel("No image selected")
-        self.file_label.setObjectName("toolDescription")
-        self.file_label.setWordWrap(True)
+        self.files_label = QLabel("No images selected")
+        self.files_label.setObjectName("toolDescription")
+        self.files_label.setWordWrap(True)
 
-        self.size_label = QLabel("Original file size: --")
+        self.size_label = QLabel("")
         self.size_label.setObjectName("toolDescription")
 
         self.output_folder_label = QLabel("Output: Desktop\\Image & PDF Toolkit")
@@ -75,7 +73,7 @@ class ImageResizerPage(QWidget):
         self.output_folder_label.setWordWrap(True)
 
         info_layout.addWidget(select_button)
-        info_layout.addWidget(self.file_label)
+        info_layout.addWidget(self.files_label)
         info_layout.addWidget(self.size_label)
         info_layout.addStretch()
         info_layout.addWidget(self.output_folder_label)
@@ -100,8 +98,9 @@ class ImageResizerPage(QWidget):
         settings_layout.addWidget(settings_title)
 
         description = QLabel(
-            "Choose a target file size. Quality is reduced automatically "
-            "(and the image is downscaled only if needed) to fit it."
+            "Choose a target file size. It's applied to every selected image — "
+            "quality is reduced automatically (and each image downscaled only "
+            "if needed) to fit it."
         )
         description.setObjectName("toolDescription")
         description.setWordWrap(True)
@@ -152,69 +151,76 @@ class ImageResizerPage(QWidget):
         main_layout.addWidget(compress_button)
         main_layout.addStretch()
 
-    def select_image(self):
+    def select_images(self):
 
-        file_path, _ = QFileDialog.getOpenFileName(
+        file_paths, _ = QFileDialog.getOpenFileNames(
             self,
-            "Select Image",
+            "Select Images",
             "",
             "Images (*.jpg *.jpeg *.png *.webp *.bmp)",
         )
 
-        if file_path:
-            self.load_image(file_path)
+        if file_paths:
+            self.load_images(file_paths)
 
-    def load_image(self, file_path):
+    def load_images(self, file_paths):
+
+        file_paths, truncated = clip_to_max_files(file_paths)
+
+        self.input_paths = file_paths
+
+        names = "\n".join(os.path.basename(path) for path in file_paths)
+        self.files_label.setText(f"{len(file_paths)} image(s) selected:\n{names}")
 
         try:
-            width, height = get_image_size(file_path)
-            file_size = format_file_size(os.path.getsize(file_path))
+            total_bytes = sum(os.path.getsize(path) for path in file_paths)
+            self.size_label.setText(f"Total original size: {format_file_size(total_bytes)}")
+        except OSError:
+            self.size_label.setText("")
 
-            self.input_path = file_path
+        self.drop_area.setText(f"{len(file_paths)} image(s) ready")
 
-            self.file_label.setText(os.path.basename(file_path))
-            self.size_label.setText(f"Original file size: {file_size} ({width} × {height} px)")
-
-            self.show_preview(file_path)
-
-        except Exception as error:
-            QMessageBox.critical(self, "Error", f"Could not open image.\n\n{error}")
-
-    def show_preview(self, file_path):
-
-        pixmap = QPixmap(file_path)
-
-        if pixmap.isNull():
-            return
-
-        scaled = pixmap.scaled(
-            self.preview.size(),
-            Qt.AspectRatioMode.KeepAspectRatio,
-            Qt.TransformationMode.SmoothTransformation,
-        )
-
-        self.preview.setPixmap(scaled)
+        if truncated:
+            QMessageBox.warning(
+                self,
+                "Too Many Images",
+                f"Only the first {MAX_BATCH_FILES} images were kept "
+                f"({truncated} extra image(s) were not added).",
+            )
 
     def compress_and_save(self):
 
-        if not self.input_path:
-            QMessageBox.warning(self, "No Image", "Please select an image first.")
+        if not self.input_paths:
+            QMessageBox.warning(self, "No Images", "Please select at least one image.")
             return
 
         target_kb = self.target_kb_spin.value()
         max_quality = self.quality_spin.value()
 
-        try:
-            output_path, achieved_kb, quality_used, width, height = compress_to_target_size(
-                self.input_path,
-                target_kb,
-                max_quality,
-            )
+        saved = 0
+        failed = []
+        last_output_folder = None
 
-            self.notify(
-                f"Saved {achieved_kb:.0f} KB ({width} × {height} px, quality {quality_used}) "
-                f"to {output_path}"
-            )
+        for input_path in self.input_paths:
+            try:
+                output_path, _achieved_kb, _quality_used, _width, _height = compress_to_target_size(
+                    input_path,
+                    target_kb,
+                    max_quality,
+                )
+                saved += 1
+                last_output_folder = os.path.dirname(output_path)
 
-        except Exception as error:
-            QMessageBox.critical(self, "Error", f"Could not compress image.\n\n{error}")
+            except Exception as error:
+                failed.append(f"{os.path.basename(input_path)}: {error}")
+
+        if saved:
+            plural = "image" if saved == 1 else "images"
+            self.notify(f"Compressed {saved} {plural} — saved to {last_output_folder}")
+
+        if failed:
+            QMessageBox.critical(
+                self,
+                "Some Images Failed",
+                "Could not compress:\n\n" + "\n".join(failed),
+            )

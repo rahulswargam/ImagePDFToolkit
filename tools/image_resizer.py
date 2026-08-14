@@ -4,14 +4,19 @@ from pathlib import Path
 
 from PIL import Image
 
+import settings_store
+
 
 def get_output_folder():
     """
-    Returns:
-        Desktop/Image & PDF Toolkit
-
-    Creates the folder automatically if it does not exist.
+    Returns the user's configured output folder if they've set one in
+    Settings, otherwise Desktop/Image & PDF Toolkit (created if missing).
     """
+    custom_folder = settings_store.get_output_folder()
+
+    if custom_folder:
+        return custom_folder
+
     desktop = Path.home() / "Desktop"
     output_folder = desktop / "Image & PDF Toolkit"
 

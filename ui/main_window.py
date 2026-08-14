@@ -1,7 +1,7 @@
 import os
 
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QIcon
+from PySide6.QtGui import QGuiApplication, QIcon
 from PySide6.QtWidgets import (
     QApplication,
     QButtonGroup,
@@ -10,21 +10,21 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QMainWindow,
-    QMessageBox,
     QPushButton,
-    QScrollArea,
     QVBoxLayout,
     QWidget,
 )
 
+import settings_store
 from ui.pages.image_resizer_page import ImageResizerPage
 from ui.pages.jpg_to_pdf_page import JpgToPdfPage
 from ui.pages.lock_pdf_page import LockPdfPage
 from ui.pages.pdf_to_jpg_page import PdfToJpgPage
 from ui.pages.png_to_jpg_page import PngToJpgPage
+from ui.pages.settings_page import SettingsPage
 from ui.pages.unlock_pdf_page import UnlockPdfPage
 from ui.styles import DARK_STYLE, LIGHT_STYLE
-from ui.widgets import AnimatedButton, Toast, ToolCard
+from ui.widgets import SmoothScrollArea, Toast, ToolCard
 from version import APP_VERSION
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -66,7 +66,9 @@ class MainWindow(QMainWindow):
         if os.path.exists(ICON_PATH):
             self.setWindowIcon(QIcon(ICON_PATH))
 
-        self.dark_mode = False
+        self.theme_mode = settings_store.get_theme_mode()
+        self.dark_mode = self._resolve_dark_mode()
+
         self.nav_group = QButtonGroup(self)
         self.nav_group.setExclusive(True)
         self.nav_buttons = {}
@@ -77,7 +79,9 @@ class MainWindow(QMainWindow):
         # buttons on the Home page cards, built inside setup_ui()).
         app = QApplication.instance()
         if app:
-            app.setStyleSheet(LIGHT_STYLE)
+            app.setStyleSheet(DARK_STYLE if self.dark_mode else LIGHT_STYLE)
+
+        QGuiApplication.styleHints().colorSchemeChanged.connect(self._on_system_theme_changed)
 
         self.setup_ui()
         self.apply_theme()
@@ -133,19 +137,11 @@ class MainWindow(QMainWindow):
 
         sidebar_layout.addStretch()
 
-        self.theme_button = QPushButton("🌙   Dark Mode")
-        self.theme_button.setObjectName("themeToggle")
-        self.theme_button.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.theme_button.clicked.connect(self.toggle_theme)
-        sidebar_layout.addWidget(self.theme_button)
-
-        sidebar_layout.addSpacing(6)
-
-        settings_button = QPushButton("⚙   Settings")
-        settings_button.setObjectName("themeToggle")
-        settings_button.setCursor(Qt.CursorShape.PointingHandCursor)
-        settings_button.clicked.connect(self.coming_soon)
-        sidebar_layout.addWidget(settings_button)
+        self.settings_button = QPushButton("⚙   Settings")
+        self.settings_button.setObjectName("themeToggle")
+        self.settings_button.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.settings_button.clicked.connect(self.open_settings_page)
+        sidebar_layout.addWidget(self.settings_button)
 
         sidebar_layout.addSpacing(18)
 
@@ -221,7 +217,7 @@ class MainWindow(QMainWindow):
         self.content_layout.addWidget(page_subtitle)
         self.content_layout.addSpacing(24)
 
-        scroll_area = QScrollArea()
+        scroll_area = SmoothScrollArea()
         scroll_area.setWidgetResizable(True)
         scroll_area.setFrameShape(QFrame.Shape.NoFrame)
         scroll_area.viewport().setObjectName("scrollViewport")
@@ -250,11 +246,25 @@ class MainWindow(QMainWindow):
         self.content_layout.addWidget(scroll_area)
 
     def open_tool(self, page_class, title_text, description):
+        self._open_page(title_text, description, lambda: page_class(self.notify))
+
+    def open_settings_page(self):
+        self._open_page(
+            "Settings",
+            "Configure appearance and default save location.",
+            lambda: SettingsPage(self.notify, self.refresh_theme),
+        )
+
+    def _open_page(self, title_text, description, page_factory):
 
         self.clear_content()
 
         if title_text in self.nav_buttons:
             self.nav_buttons[title_text].setChecked(True)
+        else:
+            self.home_button.setChecked(False)
+            for button in self.nav_buttons.values():
+                button.setChecked(False)
 
         breadcrumb = QPushButton(f"←   Home  /  {title_text}")
         breadcrumb.setObjectName("backButton")
@@ -274,33 +284,44 @@ class MainWindow(QMainWindow):
         self.content_layout.addWidget(subtitle)
         self.content_layout.addSpacing(18)
 
-        scroll_area = QScrollArea()
+        scroll_area = SmoothScrollArea()
         scroll_area.setWidgetResizable(True)
         scroll_area.setFrameShape(QFrame.Shape.NoFrame)
         scroll_area.viewport().setObjectName("scrollViewport")
 
-        page = page_class(self.notify)
+        page = page_factory()
         page.setObjectName("scrollViewport")
         scroll_area.setWidget(page)
 
         self.content_layout.addWidget(scroll_area)
 
-    def coming_soon(self):
-        QMessageBox.information(self, "Coming Soon", "This will be added next.")
+    def _resolve_dark_mode(self):
 
-    def toggle_theme(self):
-        self.dark_mode = not self.dark_mode
+        if self.theme_mode == settings_store.THEME_DARK:
+            return True
+
+        if self.theme_mode == settings_store.THEME_LIGHT:
+            return False
+
+        # "system" — follow the OS light/dark setting.
+        return QGuiApplication.styleHints().colorScheme() == Qt.ColorScheme.Dark
+
+    def refresh_theme(self):
+        self.theme_mode = settings_store.get_theme_mode()
         self.apply_theme()
+
+    def _on_system_theme_changed(self, _scheme):
+        if self.theme_mode == settings_store.THEME_SYSTEM:
+            self.apply_theme()
 
     def apply_theme(self):
 
+        self.dark_mode = self._resolve_dark_mode()
         stylesheet = DARK_STYLE if self.dark_mode else LIGHT_STYLE
 
         app = QApplication.instance()
         if app:
             app.setStyleSheet(stylesheet)
-
-        self.theme_button.setText("☀️   Light Mode" if self.dark_mode else "🌙   Dark Mode")
 
     def resizeEvent(self, event):
         super().resizeEvent(event)

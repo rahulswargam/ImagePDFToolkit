@@ -17,9 +17,9 @@ LIGHT_COLORS = {
     "accent_soft": "#eef2ff",
     "content_bg": "#f7f8fa",
     "text_primary": "#14161f",
-    "text_secondary": "#6b7280",
+    "text_secondary": "#565c6d",
     "page_title": "#14161f",
-    "page_subtitle": "#6b7280",
+    "page_subtitle": "#565c6d",
     "card_bg": "#ffffff",
     "card_border": "#e5e7eb",
     "card_border_hover": "#c7d2fe",
@@ -246,14 +246,14 @@ QLabel#toolDescription {{
     font-family: "Roboto";
     color: {colors['text_secondary']};
     background-color: transparent;
-    font-size: 12.5px;
+    font-size: 13px;
 }}
 
 QLabel#fieldLabel {{
     font-family: "Roboto Medium";
     color: {colors['text_secondary']};
     background-color: transparent;
-    font-size: 12px;
+    font-size: 12.5px;
 }}
 
 /* =========================
@@ -435,18 +435,59 @@ QWidget#scrollViewport {{
 }}
 
 QScrollBar:vertical {{
-    background: {colors['scroll_track']};
-    width: 10px;
-    border-radius: 5px;
+    background: transparent;
+    width: 14px;
+    margin: 4px 3px 4px 1px;
 }}
 
 QScrollBar::handle:vertical {{
     background: {colors['scroll_handle']};
     border-radius: 5px;
+    min-height: 32px;
 }}
 
 QScrollBar::handle:vertical:hover {{
-    background: {colors['scroll_handle_hover']};
+    background: {colors['accent']};
+}}
+
+QScrollBar::add-line:vertical,
+QScrollBar::sub-line:vertical {{
+    height: 0px;
+    border: none;
+    background: none;
+}}
+
+QScrollBar::add-page:vertical,
+QScrollBar::sub-page:vertical {{
+    background: none;
+}}
+
+QScrollBar:horizontal {{
+    background: transparent;
+    height: 14px;
+    margin: 1px 4px 3px 4px;
+}}
+
+QScrollBar::handle:horizontal {{
+    background: {colors['scroll_handle']};
+    border-radius: 5px;
+    min-width: 32px;
+}}
+
+QScrollBar::handle:horizontal:hover {{
+    background: {colors['accent']};
+}}
+
+QScrollBar::add-line:horizontal,
+QScrollBar::sub-line:horizontal {{
+    width: 0px;
+    border: none;
+    background: none;
+}}
+
+QScrollBar::add-page:horizontal,
+QScrollBar::sub-page:horizontal {{
+    background: none;
 }}
 """
 
