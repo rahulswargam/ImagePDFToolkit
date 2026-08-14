@@ -51,7 +51,7 @@ PDF_TOOLS = [
 ALL_TOOLS = IMAGE_TOOLS + PDF_TOOLS
 
 APP_VERSION = "1.0.0"
-COPYRIGHT_TEXT = "© 2026 Rahul Swargam\nAll rights reserved."
+COPYRIGHT_TEXT = "© 2026 Rahul Swargam\nMIT License"
 
 
 class MainWindow(QMainWindow):

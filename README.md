@@ -60,4 +60,4 @@ installer/setup.iss       Inno Setup installer script
 
 ## License
 
-© 2026 Rahul Swargam. All rights reserved.
+MIT — see [LICENSE](LICENSE). © 2026 Rahul Swargam.
