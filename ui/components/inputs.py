@@ -16,13 +16,31 @@ from ui.components.buttons import AnimatedButton
 _ICON_MUTED = "#9397a8"
 
 
+class _NoScrollSpinBox(QSpinBox):
+    """A QSpinBox that ignores mouse-wheel scrolling.
+
+    QAbstractSpinBox changes its value on every wheel tick by default, which
+    means scrolling the page past this field silently edits it. Ignoring the
+    event here lets it bubble up to the enclosing scroll area instead, so
+    scrolling the page scrolls the page — the value only ever changes via
+    typing or the up/down arrows/buttons.
+    """
+
+    def wheelEvent(self, event):
+        event.ignore()
+
+
 class NumberField(QWidget):
-    """A labeled, keyboard-friendly numeric input (QSpinBox) with a unit suffix.
+    """A labeled, keyboard-friendly numeric input (QSpinBox) with the unit
+    shown as its own label instead of a QSpinBox suffix.
 
     QSpinBox natively refuses non-numeric characters, can't be left "empty",
     and clamps to [minimum, maximum] — so invalid/empty/negative/out-of-range
     values are structurally impossible rather than needing a hand-rolled
-    validator.
+    validator. The unit is deliberately NOT a setSuffix() string: a suffix is
+    baked into the spinbox's own text, so selecting-and-clearing the number
+    leaves the suffix behind looking like a stuck/broken field. Showing it as
+    a separate label keeps the number field genuinely clearable.
     """
 
     valueChanged = Signal(int)
@@ -38,15 +56,25 @@ class NumberField(QWidget):
         label_widget.setObjectName("fieldLabel")
         layout.addWidget(label_widget)
 
-        self.spin = QSpinBox()
+        row = QHBoxLayout()
+        row.setSpacing(8)
+
+        self.spin = _NoScrollSpinBox()
         self.spin.setRange(minimum, maximum)
         self.spin.setValue(value)
-        self.spin.setSuffix(suffix)
         self.spin.setMinimumHeight(40)
         self.spin.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
         self.spin.setButtonSymbols(QSpinBox.ButtonSymbols.UpDownArrows)
         self.spin.valueChanged.connect(self.valueChanged.emit)
-        layout.addWidget(self.spin)
+        row.addWidget(self.spin, 1)
+
+        unit_text = suffix.strip()
+        if unit_text:
+            unit_label = QLabel(unit_text)
+            unit_label.setObjectName("numberFieldUnit")
+            row.addWidget(unit_label)
+
+        layout.addLayout(row)
 
     def value(self):
         return self.spin.value()
