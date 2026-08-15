@@ -107,7 +107,7 @@ class CompletionDialog(QDialog):
 
     A big centered icon badge, a short title, a short human-readable summary
     (never a filesystem path), a primary OK button, and an optional secondary
-    action (e.g. Open Folder) that does not have to close the dialog.
+    action (e.g. Open Folder) that closes the dialog before running.
     """
 
     def __init__(self, title, message, kind="success", secondary_label=None, parent=None):
@@ -184,6 +184,12 @@ class CompletionDialog(QDialog):
         self._secondary_action = callback
 
     def _run_secondary(self):
+        # Close the dialog before running the action: it's a frameless,
+        # always-on-top modal, so if it stays open while e.g. Explorer
+        # spawns, Windows' foreground-lock keeps the new window from
+        # stealing focus and the dialog (this app) just stays in front —
+        # looking like "Open Folder" reopened the app instead of the folder.
+        self.accept()
         if self._secondary_action:
             self._secondary_action()
 
