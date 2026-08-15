@@ -8,13 +8,13 @@ LIGHT_COLORS = {
     "sidebar_button_text": "#c4c7d4",
     "sidebar_button_hover_bg": "rgba(255, 255, 255, 0.06)",
     "sidebar_button_hover_text": "#ffffff",
-    "sidebar_active_bg": "rgba(79, 70, 229, 0.18)",
-    "sidebar_active_border": "#818cf8",
+    "sidebar_active_bg": "rgba(220, 38, 38, 0.18)",
+    "sidebar_active_border": "#f87171",
     "sidebar_active_text": "#ffffff",
-    "accent": "#4f46e5",
-    "accent_hover": "#4338ca",
-    "accent_pressed": "#3730a3",
-    "accent_soft": "#eef2ff",
+    "accent": "#dc2626",
+    "accent_hover": "#b91c1c",
+    "accent_pressed": "#991b1b",
+    "accent_soft": "#fef2f2",
     "content_bg": "#f7f8fa",
     "text_primary": "#14161f",
     "text_secondary": "#565c6d",
@@ -22,22 +22,22 @@ LIGHT_COLORS = {
     "page_subtitle": "#565c6d",
     "card_bg": "#ffffff",
     "card_border": "#e5e7eb",
-    "card_border_hover": "#c7d2fe",
+    "card_border_hover": "#fca5a5",
     "input_bg": "#ffffff",
     "input_border": "#d8dae2",
     "input_text": "#14161f",
     "combo_popup_bg": "#ffffff",
     "preview_bg": "#fafafc",
     "preview_border": "#dfe1e8",
-    "drag_active_bg": "#eef2ff",
-    "drag_active_border": "#4f46e5",
+    "drag_active_bg": "#fef2f2",
+    "drag_active_border": "#dc2626",
     "scroll_track": "#f1f2f6",
     "scroll_handle": "#cfd2dc",
     "scroll_handle_hover": "#adb1c0",
     "toast_bg": "#14161f",
     "toast_text": "#f7f8fa",
-    "success": "#22c55e",
-    "error": "#f87171",
+    "success": "#16a34a",
+    "error": "#f97316",
     "footer_text": "#5b5f72",
     "footer_border": "#20222e",
 }
@@ -52,13 +52,13 @@ DARK_COLORS = {
     "sidebar_button_text": "#b7bacb",
     "sidebar_button_hover_bg": "rgba(255, 255, 255, 0.05)",
     "sidebar_button_hover_text": "#ffffff",
-    "sidebar_active_bg": "rgba(99, 102, 241, 0.22)",
-    "sidebar_active_border": "#818cf8",
+    "sidebar_active_bg": "rgba(239, 68, 68, 0.22)",
+    "sidebar_active_border": "#f87171",
     "sidebar_active_text": "#ffffff",
-    "accent": "#6366f1",
-    "accent_hover": "#7c7ff0",
-    "accent_pressed": "#4f46e5",
-    "accent_soft": "#181a2e",
+    "accent": "#ef4444",
+    "accent_hover": "#f87171",
+    "accent_pressed": "#dc2626",
+    "accent_soft": "#2a1212",
     "content_bg": "#0e1017",
     "text_primary": "#e7e8ee",
     "text_secondary": "#9397a8",
@@ -66,22 +66,22 @@ DARK_COLORS = {
     "page_subtitle": "#9397a8",
     "card_bg": "#14161f",
     "card_border": "#20222e",
-    "card_border_hover": "#3f3f8f",
+    "card_border_hover": "#991b1b",
     "input_bg": "#0e1017",
     "input_border": "#262838",
     "input_text": "#e7e8ee",
     "combo_popup_bg": "#14161f",
     "preview_bg": "#0e1017",
     "preview_border": "#20222e",
-    "drag_active_bg": "#181a2e",
-    "drag_active_border": "#6366f1",
+    "drag_active_bg": "#2a1212",
+    "drag_active_border": "#ef4444",
     "scroll_track": "#0e1017",
     "scroll_handle": "#262838",
     "scroll_handle_hover": "#33354a",
     "toast_bg": "#1b1d29",
     "toast_text": "#f5f6fa",
     "success": "#4ade80",
-    "error": "#f87171",
+    "error": "#fb923c",
     "footer_text": "#5b5f72",
     "footer_border": "#1b1d29",
 }
@@ -109,10 +109,9 @@ QWidget {{
 }}
 
 #appTitle {{
-    font-family: "Roboto";
+    font-family: "Roboto Black";
     color: {colors['app_title']};
     font-size: 20px;
-    font-weight: 700;
 }}
 
 #sidebarSubtitle {{
@@ -193,11 +192,21 @@ QPushButton#themeToggle:hover {{
 }}
 
 #pageTitle {{
-    font-family: "Roboto";
+    font-family: "Roboto Black";
     color: {colors['page_title']};
-    font-size: 26px;
-    font-weight: 700;
+    font-size: 30px;
     background-color: transparent;
+}}
+
+#heroBadge {{
+    font-family: "Roboto SemiBold";
+    color: {colors['accent']};
+    background-color: {colors['accent_soft']};
+    border: 1px solid {colors['card_border_hover']};
+    border-radius: 12px;
+    font-size: 11px;
+    letter-spacing: 1.5px;
+    padding: 6px 14px;
 }}
 
 #pageSubtitle {{
@@ -228,15 +237,15 @@ QPushButton#backButton:hover {{
 QFrame#toolCard {{
     background-color: {colors['card_bg']};
     border: 1px solid {colors['card_border']};
-    border-radius: 12px;
+    border-radius: 18px;
 }}
 
 QFrame#toolCard:hover {{
-    border: 1px solid {colors['card_border_hover']};
+    border: 1.5px solid {colors['card_border_hover']};
 }}
 
 QLabel#toolTitle {{
-    font-family: "Roboto Medium";
+    font-family: "Roboto SemiBold";
     color: {colors['text_primary']};
     background-color: transparent;
     font-size: 16px;
@@ -261,11 +270,11 @@ QLabel#fieldLabel {{
    ========================= */
 
 QPushButton#toolButton {{
-    font-family: "Roboto Medium";
+    font-family: "Roboto SemiBold";
     background-color: {colors['accent']};
     color: #ffffff;
     border: none;
-    border-radius: 8px;
+    border-radius: 12px;
     padding: 10px 16px;
     font-size: 13.5px;
 }}
@@ -279,11 +288,11 @@ QPushButton#toolButton:pressed {{
 }}
 
 QPushButton#secondaryButton {{
-    font-family: "Roboto Medium";
+    font-family: "Roboto SemiBold";
     background-color: transparent;
     color: {colors['accent']};
     border: 1px solid {colors['card_border']};
-    border-radius: 8px;
+    border-radius: 12px;
     padding: 9px 16px;
     font-size: 13.5px;
 }}
@@ -304,7 +313,7 @@ QLineEdit {{
     background-color: {colors['input_bg']};
     color: {colors['input_text']};
     border: 1px solid {colors['input_border']};
-    border-radius: 8px;
+    border-radius: 10px;
     padding: 9px 10px;
     min-height: 22px;
     selection-background-color: {colors['accent']};
@@ -330,7 +339,7 @@ QPushButton#revealButton {{
     background-color: {colors['input_bg']};
     color: {colors['text_secondary']};
     border: 1px solid {colors['input_border']};
-    border-radius: 8px;
+    border-radius: 10px;
     padding: 9px 14px;
     font-size: 12.5px;
     min-height: 22px;
@@ -371,7 +380,7 @@ QLabel {{
 #previewFrame {{
     background-color: {colors['preview_bg']};
     border: 1.5px dashed {colors['preview_border']};
-    border-radius: 12px;
+    border-radius: 16px;
     color: {colors['text_secondary']};
     font-size: 13px;
     padding: 10px;
@@ -384,12 +393,62 @@ QLabel {{
 }}
 
 /* =========================
+   FILE ROW (batch file lists)
+   ========================= */
+
+QFrame#fileRow {{
+    background-color: {colors['preview_bg']};
+    border: 1px solid {colors['preview_border']};
+    border-radius: 12px;
+}}
+
+QFrame#fileRow:hover {{
+    border: 1px solid {colors['card_border_hover']};
+}}
+
+QLabel#fileRowIcon {{
+    background-color: {colors['accent_soft']};
+    color: {colors['accent']};
+    border-radius: 9px;
+    font-size: 15px;
+}}
+
+QLabel#fileRowName {{
+    font-family: "Roboto Medium";
+    color: {colors['text_primary']};
+    background-color: transparent;
+    font-size: 13px;
+}}
+
+QLabel#fileRowMeta {{
+    font-family: "Roboto Medium";
+    color: {colors['text_secondary']};
+    background-color: transparent;
+    font-size: 10.5px;
+    letter-spacing: 0.5px;
+}}
+
+QPushButton#fileRowRemove {{
+    font-family: "Roboto";
+    background-color: transparent;
+    color: {colors['text_secondary']};
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+}}
+
+QPushButton#fileRowRemove:hover {{
+    background-color: {colors['accent_soft']};
+    color: {colors['accent']};
+}}
+
+/* =========================
    TOAST
    ========================= */
 
 QFrame#toast {{
     background-color: {colors['toast_bg']};
-    border-radius: 10px;
+    border-radius: 14px;
 }}
 
 QFrame#toast[kind="success"] {{

@@ -12,7 +12,13 @@ from PySide6.QtWidgets import (
 )
 
 from tools.image_resizer import compress_to_target_size, format_file_size, get_image_size
-from ui.widgets import MAX_BATCH_FILES, AnimatedButton, DropArea, clip_to_max_files
+from ui.widgets import (
+    MAX_BATCH_FILES,
+    AnimatedButton,
+    DropArea,
+    FileListWidget,
+    clip_to_max_files,
+)
 
 EXTENSIONS = (".jpg", ".jpeg", ".png", ".webp", ".bmp")
 
@@ -81,6 +87,9 @@ class ImageResizerPage(QWidget):
         file_layout.addLayout(info_layout)
 
         main_layout.addWidget(file_card)
+
+        self.file_list = FileListWidget(icon_glyph="🖼")
+        main_layout.addWidget(self.file_list)
 
         # =========================
         # COMPRESSION SETTINGS
@@ -151,6 +160,8 @@ class ImageResizerPage(QWidget):
         main_layout.addWidget(compress_button)
         main_layout.addStretch()
 
+        self.file_list.filesChanged.connect(self.on_files_changed)
+
     def select_images(self):
 
         file_paths, _ = QFileDialog.getOpenFileNames(
@@ -165,20 +176,11 @@ class ImageResizerPage(QWidget):
 
     def load_images(self, file_paths):
 
-        file_paths, truncated = clip_to_max_files(file_paths)
+        file_paths, truncated = clip_to_max_files(list(self.input_paths) + list(file_paths))
 
         self.input_paths = file_paths
-
-        names = "\n".join(os.path.basename(path) for path in file_paths)
-        self.files_label.setText(f"{len(file_paths)} image(s) selected:\n{names}")
-
-        try:
-            total_bytes = sum(os.path.getsize(path) for path in file_paths)
-            self.size_label.setText(f"Total original size: {format_file_size(total_bytes)}")
-        except OSError:
-            self.size_label.setText("")
-
-        self.drop_area.setText(f"{len(file_paths)} image(s) ready")
+        self.file_list.set_files(file_paths)
+        self.refresh_summary()
 
         if truncated:
             QMessageBox.warning(
@@ -187,6 +189,31 @@ class ImageResizerPage(QWidget):
                 f"Only the first {MAX_BATCH_FILES} images were kept "
                 f"({truncated} extra image(s) were not added).",
             )
+
+    def on_files_changed(self, file_paths):
+        self.input_paths = file_paths
+        self.refresh_summary()
+
+    def refresh_summary(self):
+
+        file_paths = self.input_paths
+
+        if not file_paths:
+            self.files_label.setText("No images selected")
+            self.size_label.setText("")
+            self.drop_area.reset()
+            return
+
+        plural = "image" if len(file_paths) == 1 else "images"
+        self.files_label.setText(f"{len(file_paths)} {plural} selected")
+
+        try:
+            total_bytes = sum(os.path.getsize(path) for path in file_paths)
+            self.size_label.setText(f"Total original size: {format_file_size(total_bytes)}")
+        except OSError:
+            self.size_label.setText("")
+
+        self.drop_area.setText(f"{len(file_paths)} {plural} ready")
 
     def compress_and_save(self):
 

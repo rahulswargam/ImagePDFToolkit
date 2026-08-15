@@ -17,13 +17,13 @@ from PIL import Image, ImageDraw
 SIZE = 1024
 OUT_DIR = os.path.dirname(os.path.abspath(__file__))
 
-ACCENT_START = (79, 70, 229)   # indigo #4f46e5
-ACCENT_END = (99, 102, 241)    # indigo #6366f1
+ACCENT_START = (220, 38, 38)   # red #dc2626
+ACCENT_END = (239, 68, 68)     # red #ef4444
 WHITE = (255, 255, 255, 255)
-FOLD_SHADE = (224, 224, 250, 255)
-GLYPH_LIGHT = (238, 242, 255, 255)
+FOLD_SHADE = (254, 226, 226, 255)
+GLYPH_LIGHT = (254, 242, 242, 255)
 GLYPH_SUN = (250, 204, 21, 255)     # amber
-GLYPH_MOUNTAIN = (79, 70, 229, 255)
+GLYPH_MOUNTAIN = (220, 38, 38, 255)
 
 
 def rounded_mask(size, radius):

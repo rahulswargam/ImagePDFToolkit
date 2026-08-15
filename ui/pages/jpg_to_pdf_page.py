@@ -11,7 +11,13 @@ from PySide6.QtWidgets import (
 )
 
 from tools.jpg_to_pdf import convert_images_to_pdf
-from ui.widgets import MAX_BATCH_FILES, AnimatedButton, DropArea, clip_to_max_files
+from ui.widgets import (
+    MAX_BATCH_FILES,
+    AnimatedButton,
+    DropArea,
+    FileListWidget,
+    clip_to_max_files,
+)
 
 EXTENSIONS = (".jpg", ".jpeg", ".png", ".bmp", ".webp")
 
@@ -73,6 +79,9 @@ class JpgToPdfPage(QWidget):
 
         main_layout.addWidget(file_card)
 
+        self.file_list = FileListWidget(icon_glyph="🖼")
+        main_layout.addWidget(self.file_list)
+
         convert_button = AnimatedButton("Convert to PDF")
         convert_button.setObjectName("toolButton")
         convert_button.setMinimumHeight(45)
@@ -80,6 +89,8 @@ class JpgToPdfPage(QWidget):
 
         main_layout.addWidget(convert_button)
         main_layout.addStretch()
+
+        self.file_list.filesChanged.connect(self.on_files_changed)
 
     def select_images(self):
 
@@ -95,14 +106,11 @@ class JpgToPdfPage(QWidget):
 
     def load_images(self, file_paths):
 
-        file_paths, truncated = clip_to_max_files(file_paths)
+        file_paths, truncated = clip_to_max_files(list(self.input_paths) + list(file_paths))
 
         self.input_paths = file_paths
-
-        names = "\n".join(os.path.basename(path) for path in file_paths)
-        self.files_label.setText(f"{len(file_paths)} image(s) selected:\n{names}")
-
-        self.drop_area.setText(f"{len(file_paths)} image(s) ready")
+        self.file_list.set_files(file_paths)
+        self.refresh_summary()
 
         if truncated:
             QMessageBox.warning(
@@ -111,6 +119,23 @@ class JpgToPdfPage(QWidget):
                 f"Only the first {MAX_BATCH_FILES} images were kept "
                 f"({truncated} extra image(s) were not added).",
             )
+
+    def on_files_changed(self, file_paths):
+        self.input_paths = file_paths
+        self.refresh_summary()
+
+    def refresh_summary(self):
+
+        file_paths = self.input_paths
+
+        if not file_paths:
+            self.files_label.setText("No images selected")
+            self.drop_area.reset()
+            return
+
+        plural = "image" if len(file_paths) == 1 else "images"
+        self.files_label.setText(f"{len(file_paths)} {plural} selected — order = page order")
+        self.drop_area.setText(f"{len(file_paths)} {plural} ready")
 
     def convert(self):
 
