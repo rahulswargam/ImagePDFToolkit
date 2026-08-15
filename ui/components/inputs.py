@@ -5,55 +5,54 @@ from PySide6.QtWidgets import (
     QLabel,
     QLineEdit,
     QPushButton,
-    QSlider,
+    QSpinBox,
     QVBoxLayout,
     QWidget,
 )
 
 from ui import icons as icon_lib
+from ui.components.buttons import AnimatedButton
 
 _ICON_MUTED = "#9397a8"
 
 
-class SliderInput(QWidget):
-    """A labeled QSlider with a live numeric readout (e.g. "Target Size  200 KB")."""
+class NumberField(QWidget):
+    """A labeled, keyboard-friendly numeric input (QSpinBox) with a unit suffix.
+
+    QSpinBox natively refuses non-numeric characters, can't be left "empty",
+    and clamps to [minimum, maximum] — so invalid/empty/negative/out-of-range
+    values are structurally impossible rather than needing a hand-rolled
+    validator.
+    """
 
     valueChanged = Signal(int)
 
     def __init__(self, label, minimum, maximum, value, suffix="", parent=None):
         super().__init__(parent)
 
-        self._suffix = suffix
-
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(8)
 
-        label_row = QHBoxLayout()
         label_widget = QLabel(label)
         label_widget.setObjectName("fieldLabel")
-        self._value_label = QLabel(f"{value}{suffix}")
-        self._value_label.setObjectName("fieldLabel")
-        label_row.addWidget(label_widget)
-        label_row.addStretch()
-        label_row.addWidget(self._value_label)
-        layout.addLayout(label_row)
+        layout.addWidget(label_widget)
 
-        self.slider = QSlider(Qt.Orientation.Horizontal)
-        self.slider.setRange(minimum, maximum)
-        self.slider.setValue(value)
-        self.slider.valueChanged.connect(self._on_slider_changed)
-        layout.addWidget(self.slider)
-
-    def _on_slider_changed(self, value):
-        self._value_label.setText(f"{value}{self._suffix}")
-        self.valueChanged.emit(value)
+        self.spin = QSpinBox()
+        self.spin.setRange(minimum, maximum)
+        self.spin.setValue(value)
+        self.spin.setSuffix(suffix)
+        self.spin.setMinimumHeight(40)
+        self.spin.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
+        self.spin.setButtonSymbols(QSpinBox.ButtonSymbols.UpDownArrows)
+        self.spin.valueChanged.connect(self.valueChanged.emit)
+        layout.addWidget(self.spin)
 
     def value(self):
-        return self.slider.value()
+        return self.spin.value()
 
     def setValue(self, value):
-        self.slider.setValue(value)
+        self.spin.setValue(value)
 
 
 class PasswordField(QWidget):
@@ -77,12 +76,14 @@ class PasswordField(QWidget):
         self.edit.setEchoMode(QLineEdit.EchoMode.Password)
         row.addWidget(self.edit)
 
-        self._toggle = QPushButton()
+        self._toggle = AnimatedButton("")
         self._toggle.setObjectName("iconButton")
         self._toggle.setFixedSize(38, 38)
         self._toggle.setCursor(Qt.CursorShape.PointingHandCursor)
         self._toggle.setIconSize(QSize(18, 18))
         self._toggle.setIcon(icon_lib.get_icon("eye", _ICON_MUTED, 18))
+        self._toggle.setToolTip("Show password")
+        self._toggle.setAccessibleName("Toggle password visibility")
         self._toggle.clicked.connect(self._toggle_reveal)
         row.addWidget(self._toggle)
 
@@ -101,6 +102,7 @@ class PasswordField(QWidget):
         )
         icon_name = "eye-off" if self._revealed else "eye"
         self._toggle.setIcon(icon_lib.get_icon(icon_name, _ICON_MUTED, 18))
+        self._toggle.setToolTip("Hide password" if self._revealed else "Show password")
 
     def text(self):
         return self.edit.text()
@@ -110,6 +112,7 @@ class PasswordField(QWidget):
         self._revealed = False
         self.edit.setEchoMode(QLineEdit.EchoMode.Password)
         self._toggle.setIcon(icon_lib.get_icon("eye", _ICON_MUTED, 18))
+        self._toggle.setToolTip("Show password")
 
     def _build_strength_row(self, layout):
         segments_row = QHBoxLayout()

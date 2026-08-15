@@ -6,7 +6,7 @@ import activity_store
 from tools.lock_pdf import lock_pdf
 from ui import icons as icon_lib
 from ui.components.buttons import AnimatedButton, ProcessingBar
-from ui.components.feedback import Modal, SuccessPanel
+from ui.components.feedback import CompletionDialog
 from ui.components.inputs import PasswordField
 from ui.components.pdf_preview import PdfPreviewCard
 from ui.components.workspace import DropWorkspace
@@ -87,11 +87,6 @@ class LockPdfPage(QWidget):
         self.processing_bar = ProcessingBar()
         main_layout.addWidget(self.processing_bar)
 
-        self.success_panel = SuccessPanel()
-        self.success_panel.openFolderClicked.connect(self._open_output_folder)
-        self.success_panel.doneClicked.connect(self._reset)
-        main_layout.addWidget(self.success_panel)
-
         main_layout.addStretch()
 
     def select_pdf(self):
@@ -104,7 +99,6 @@ class LockPdfPage(QWidget):
     def load_pdf(self, file_path):
 
         self.input_path = file_path
-        self.success_panel.hide()
 
         if self._preview_card is not None:
             self._preview_card.setParent(None)
@@ -129,18 +123,18 @@ class LockPdfPage(QWidget):
     def lock(self):
 
         if not self.input_path:
-            Modal.warn(self, "No PDF", "Please select a PDF first.")
+            CompletionDialog.warn(self, "No PDF Selected", "Please select a PDF first.")
             return
 
         password = self.password_field.text()
         confirm = self.confirm_field.text()
 
         if not password:
-            Modal.warn(self, "Missing Password", "Please enter a password.")
+            CompletionDialog.warn(self, "Missing Password", "Please enter a password.")
             return
 
         if password != confirm:
-            Modal.warn(self, "Password Mismatch", "Passwords do not match.")
+            CompletionDialog.warn(self, "Password Mismatch", "Passwords do not match.")
             return
 
         self.lock_button.set_processing(True, "Protecting…")
@@ -153,24 +147,24 @@ class LockPdfPage(QWidget):
 
             activity_store.record("lock", os.path.basename(output_path), "Password protected")
 
-            self.success_panel.show_success(
-                "PDF protected",
-                f"{os.path.basename(output_path)} now requires a password to open",
-            )
-
             self.password_field.clear()
             self.confirm_field.clear()
 
-        except Exception as error:
-            Modal.warn(self, "Could Not Protect PDF", str(error))
-
-        finally:
             self.lock_button.set_processing(False)
             self.processing_bar.hide()
+
+            CompletionDialog.success(
+                self,
+                "Processing complete",
+                "PDF protected successfully.",
+                open_folder=self._open_output_folder,
+            )
+
+        except Exception as error:
+            self.lock_button.set_processing(False)
+            self.processing_bar.hide()
+            CompletionDialog.error(self, "Processing Failed", f"Unable to protect this PDF.\n\n{error}")
 
     def _open_output_folder(self):
         if self._last_output_folder and os.path.isdir(self._last_output_folder):
             os.startfile(self._last_output_folder)
-
-    def _reset(self):
-        self._clear_pdf()

@@ -97,5 +97,7 @@ class PdfPreviewCard(QFrame):
         remove_button.setIconSize(QSize(14, 14))
         remove_button.setFixedSize(28, 28)
         remove_button.setCursor(Qt.CursorShape.PointingHandCursor)
+        remove_button.setToolTip(f"Remove {os.path.basename(file_path)}")
+        remove_button.setAccessibleName(f"Remove {os.path.basename(file_path)}")
         remove_button.clicked.connect(self.removed.emit)
         layout.addWidget(remove_button, alignment=Qt.AlignmentFlag.AlignTop)

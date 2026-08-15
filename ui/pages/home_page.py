@@ -13,6 +13,7 @@ from PySide6.QtWidgets import (
 
 import activity_store
 from ui import icons as icon_lib
+from ui.components.animation import fade_in
 from ui import tokens
 from ui.components.workspace import DropWorkspace
 
@@ -61,17 +62,22 @@ class QuickActionRow(QFrame):
 
         self.setObjectName("quickActionRow")
         self.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
+        self.setAccessibleName(f"Open {title_text}" + (f" — {description}" if description else ""))
 
         layout = QHBoxLayout(self)
         pad = 18 if featured else 12
         layout.setContentsMargins(pad, pad, pad, pad)
         layout.setSpacing(14)
 
-        icon_size = 26 if featured else 18
-        icon_label = QLabel()
-        icon_label.setPixmap(icon_lib.get_pixmap(icon_name, _ACCENT, icon_size))
-        icon_label.setFixedSize(icon_size, icon_size)
-        layout.addWidget(icon_label)
+        badge_size = 44 if featured else 34
+        icon_size = 22 if featured else 16
+        icon_badge = QLabel()
+        icon_badge.setObjectName("quickActionIconBadge")
+        icon_badge.setFixedSize(badge_size, badge_size)
+        icon_badge.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        icon_badge.setPixmap(icon_lib.get_pixmap(icon_name, _ACCENT, icon_size))
+        layout.addWidget(icon_badge)
 
         text_layout = QVBoxLayout()
         text_layout.setSpacing(3)
@@ -90,9 +96,9 @@ class QuickActionRow(QFrame):
 
         layout.addLayout(text_layout, 1)
 
-        chevron = QLabel()
-        chevron.setPixmap(icon_lib.get_pixmap("chevron-right", _ICON_MUTED, tokens.ICON_SM))
-        layout.addWidget(chevron)
+        self._chevron = QLabel()
+        self._chevron.setPixmap(icon_lib.get_pixmap("chevron-right", _ICON_MUTED, tokens.ICON_SM))
+        layout.addWidget(self._chevron)
 
         self._callback = callback
 
@@ -100,6 +106,20 @@ class QuickActionRow(QFrame):
         if event.button() == Qt.MouseButton.LeftButton and self._callback:
             self._callback()
         super().mousePressEvent(event)
+
+    def keyPressEvent(self, event):
+        if event.key() in (Qt.Key.Key_Return, Qt.Key.Key_Enter, Qt.Key.Key_Space) and self._callback:
+            self._callback()
+        else:
+            super().keyPressEvent(event)
+
+    def enterEvent(self, event):
+        self._chevron.setPixmap(icon_lib.get_pixmap("chevron-right", _ACCENT, tokens.ICON_SM))
+        super().enterEvent(event)
+
+    def leaveEvent(self, event):
+        self._chevron.setPixmap(icon_lib.get_pixmap("chevron-right", _ICON_MUTED, tokens.ICON_SM))
+        super().leaveEvent(event)
 
 
 class ActivityRow(QFrame):
@@ -160,28 +180,18 @@ class HomePage(QWidget):
         # HERO
         # =========================
 
-        badge_wrap = QFrame()
-        badge_wrap.setObjectName("heroBadge")
-        badge_row = QHBoxLayout(badge_wrap)
-        badge_row.setContentsMargins(10, 6, 14, 6)
-        badge_row.setSpacing(6)
-
-        badge_icon = QLabel()
-        badge_icon.setPixmap(icon_lib.get_pixmap("zap", _ACCENT, 12))
-        badge_row.addWidget(badge_icon)
-
-        badge_text = QLabel("FAST · PRIVATE · OFFLINE")
-        badge_text.setObjectName("heroBadgeText")
-        badge_row.addWidget(badge_text)
-
         badge_line = QHBoxLayout()
-        badge_line.addWidget(badge_wrap)
+        badge_line.setSpacing(8)
+        badge_line.addWidget(self._build_hero_badge("zap", "FAST"))
+        badge_line.addWidget(self._build_hero_badge("shield", "PRIVATE"))
+        badge_line.addWidget(self._build_hero_badge("offline", "OFFLINE"))
         badge_line.addStretch()
         layout.addLayout(badge_line)
         layout.addSpacing(14)
 
         page_title = QLabel("Image & PDF Toolkit")
         page_title.setObjectName("pageTitle")
+        fade_in(page_title)
         layout.addWidget(page_title)
 
         page_subtitle = QLabel("Fast, private, offline tools for your images and PDF files.")
@@ -252,6 +262,25 @@ class HomePage(QWidget):
                 layout.addWidget(ActivityRow(entry))
 
         layout.addStretch()
+
+    @staticmethod
+    def _build_hero_badge(icon_name, label):
+        badge = QFrame()
+        badge.setObjectName("heroBadge")
+
+        row = QHBoxLayout(badge)
+        row.setContentsMargins(10, 6, 14, 6)
+        row.setSpacing(6)
+
+        icon = QLabel()
+        icon.setPixmap(icon_lib.get_pixmap(icon_name, _ACCENT, 12))
+        row.addWidget(icon)
+
+        text = QLabel(label)
+        text.setObjectName("heroBadgeText")
+        row.addWidget(text)
+
+        return badge
 
     def _browse(self):
         from PySide6.QtWidgets import QFileDialog

@@ -6,7 +6,7 @@ import activity_store
 from tools.image_resizer import format_file_size, get_image_size
 from tools.jpg_to_pdf import convert_images_to_pdf
 from ui.components.buttons import AnimatedButton, ProcessingBar
-from ui.components.feedback import Modal, SuccessPanel
+from ui.components.feedback import CompletionDialog
 from ui.components.workspace import MAX_BATCH_FILES, DropWorkspace, FileGrid, clip_to_max_files
 
 EXTENSIONS = (".jpg", ".jpeg", ".png", ".bmp", ".webp")
@@ -61,11 +61,6 @@ class JpgToPdfPage(QWidget):
         self.processing_bar = ProcessingBar()
         main_layout.addWidget(self.processing_bar)
 
-        self.success_panel = SuccessPanel()
-        self.success_panel.openFolderClicked.connect(self._open_output_folder)
-        self.success_panel.doneClicked.connect(self._reset)
-        main_layout.addWidget(self.success_panel)
-
         main_layout.addStretch()
 
     def _image_meta(self, path):
@@ -97,7 +92,7 @@ class JpgToPdfPage(QWidget):
         self.refresh_summary()
 
         if truncated:
-            Modal.warn(
+            CompletionDialog.warn(
                 self,
                 "Too Many Images",
                 f"Only the first {MAX_BATCH_FILES} images were kept "
@@ -111,7 +106,6 @@ class JpgToPdfPage(QWidget):
     def refresh_summary(self):
 
         file_paths = self.input_paths
-        self.success_panel.hide()
 
         if not file_paths:
             self.summary_label.hide()
@@ -149,23 +143,24 @@ class JpgToPdfPage(QWidget):
                 f"Combined {len(self.input_paths)} image(s) into a PDF",
             )
 
-            self.success_panel.show_success(
-                "PDF created",
-                f"{len(self.input_paths)} image(s) combined into {os.path.basename(output_path)}",
-            )
-
-        except Exception as error:
-            Modal.warn(self, "Conversion Failed", f"Could not create PDF.\n\n{error}")
-
-        finally:
             self.convert_button.set_processing(False)
             self.processing_bar.hide()
+
+            count = len(self.input_paths)
+            plural = "image" if count == 1 else "images"
+            CompletionDialog.success(
+                self,
+                "Processing complete",
+                f"{count} {plural} converted into a PDF.",
+                open_folder=self._open_output_folder,
+            )
+            return
+
+        except Exception as error:
+            self.convert_button.set_processing(False)
+            self.processing_bar.hide()
+            CompletionDialog.error(self, "Processing Failed", f"Could not create the PDF.\n\n{error}")
 
     def _open_output_folder(self):
         if self._last_output_path and os.path.isdir(os.path.dirname(self._last_output_path)):
             os.startfile(os.path.dirname(self._last_output_path))
-
-    def _reset(self):
-        self.input_paths = []
-        self.file_grid.set_files([])
-        self.refresh_summary()

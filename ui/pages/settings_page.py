@@ -4,7 +4,7 @@ from PySide6.QtWidgets import QFileDialog, QFrame, QHBoxLayout, QLabel, QVBoxLay
 
 import settings_store
 from ui.components.buttons import AnimatedButton
-from ui.components.inputs import SegmentedControl, SliderInput
+from ui.components.inputs import NumberField, SegmentedControl
 from version import APP_VERSION
 
 THEME_OPTIONS = [
@@ -190,18 +190,18 @@ class SettingsPage(QWidget):
         options_row = QHBoxLayout()
         options_row.setSpacing(28)
 
-        self.default_target_slider = SliderInput(
+        self.default_target_field = NumberField(
             "Default Target Size", 5, 5000, settings_store.get_default_target_kb(), suffix=" KB"
         )
-        self.default_target_slider.valueChanged.connect(settings_store.set_default_target_kb)
+        self.default_target_field.valueChanged.connect(settings_store.set_default_target_kb)
 
-        self.default_quality_slider = SliderInput(
+        self.default_quality_field = NumberField(
             "Default Maximum Quality", 5, 100, settings_store.get_default_quality(), suffix="%"
         )
-        self.default_quality_slider.valueChanged.connect(settings_store.set_default_quality)
+        self.default_quality_field.valueChanged.connect(settings_store.set_default_quality)
 
-        options_row.addWidget(self.default_target_slider)
-        options_row.addWidget(self.default_quality_slider)
+        options_row.addWidget(self.default_target_field)
+        options_row.addWidget(self.default_quality_field)
         layout.addLayout(options_row)
 
         return card

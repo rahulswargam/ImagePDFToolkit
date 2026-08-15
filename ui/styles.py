@@ -468,6 +468,15 @@ QLabel {{
     border-radius: 20px;
 }}
 
+#dropWorkspace:hover {{
+    border: 1.5px dashed {colors['border_strong']};
+    background-color: {colors['surface_raised']};
+}}
+
+#dropWorkspace:focus {{
+    border: 1.5px dashed {colors['accent']};
+}}
+
 #dropWorkspace[dragActive="true"] {{
     background-color: {colors['workspace_active_bg']};
     border: 1.5px dashed {colors['workspace_active_border']};
@@ -630,31 +639,35 @@ QPushButton#revealButton:pressed {{
 }}
 
 /* =========================
-   SUCCESS / EMPTY / MODAL
+   COMPLETION DIALOG / EMPTY / MODAL
    ========================= */
 
-#successPanel {{
-    background-color: {colors['accent_soft']};
-    border: 1px solid {colors['border']};
-    border-radius: 16px;
-}}
-
-#successIcon {{
+#completionBadge {{
     background-color: {colors['success']};
-    border-radius: 999px;
+    border: none;
+    border-radius: 28px;
 }}
 
-#panelTitle {{
-    font-family: "Roboto SemiBold";
+#completionBadge[kind="error"],
+#completionBadge[kind="warning"] {{
+    background-color: {colors['error']};
+}}
+
+#completionBadge[kind="info"] {{
+    background-color: {colors['text_secondary']};
+}}
+
+#completionTitle {{
+    font-family: "Roboto Black";
     color: {colors['text_primary']};
-    font-size: 15px;
+    font-size: 19px;
     background-color: transparent;
 }}
 
-#panelDetail {{
+#completionMessage {{
     font-family: "Roboto";
     color: {colors['text_secondary']};
-    font-size: 13px;
+    font-size: 13.5px;
     background-color: transparent;
 }}
 
@@ -691,6 +704,15 @@ QFrame#quickActionRow {{
 QFrame#quickActionRow:hover {{
     border: 1px solid {colors['border_strong']};
     background-color: {colors['surface_raised']};
+}}
+
+QFrame#quickActionRow:focus {{
+    border: 1px solid {colors['accent']};
+}}
+
+#quickActionIconBadge {{
+    background-color: {colors['accent_soft']};
+    border-radius: 11px;
 }}
 
 #quickActionTitle {{
