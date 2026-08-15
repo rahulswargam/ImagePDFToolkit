@@ -1,17 +1,12 @@
-import os
-from datetime import datetime
-
-from PySide6.QtCore import QSize, Qt
+from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QFrame,
     QHBoxLayout,
     QLabel,
-    QPushButton,
     QVBoxLayout,
     QWidget,
 )
 
-import activity_store
 from ui import icons as icon_lib
 from ui.components.animation import fade_in
 from ui import tokens
@@ -22,35 +17,6 @@ _ICON_MUTED = "#9397a8"
 
 IMAGE_EXTENSIONS = (".jpg", ".jpeg", ".png", ".webp", ".bmp")
 PDF_EXTENSIONS = (".pdf",)
-
-_ACTIVITY_ICONS = {
-    "resize": "resize",
-    "png_to_jpg": "repeat",
-    "jpg_to_pdf": "layers",
-    "pdf_to_jpg": "image",
-    "lock": "lock",
-    "unlock": "unlock",
-}
-
-
-def _relative_time(iso_timestamp):
-    try:
-        when = datetime.fromisoformat(iso_timestamp)
-    except (TypeError, ValueError):
-        return ""
-
-    now = datetime.now()
-    same_day = when.date() == now.date()
-    time_text = when.strftime("%-I:%M %p") if os.name != "nt" else when.strftime("%I:%M %p").lstrip("0")
-
-    if same_day:
-        return f"Today {time_text}"
-
-    yesterday = (now.date() - when.date()).days == 1
-    if yesterday:
-        return f"Yesterday {time_text}"
-
-    return when.strftime("%b %-d") if os.name != "nt" else when.strftime("%b %d").replace(" 0", " ")
 
 
 class QuickActionRow(QFrame):
@@ -122,43 +88,9 @@ class QuickActionRow(QFrame):
         super().leaveEvent(event)
 
 
-class ActivityRow(QFrame):
-    def __init__(self, entry, parent=None):
-        super().__init__(parent)
-
-        self.setObjectName("activityRow")
-
-        layout = QHBoxLayout(self)
-        layout.setContentsMargins(4, 10, 4, 10)
-        layout.setSpacing(12)
-
-        icon_name = _ACTIVITY_ICONS.get(entry.get("kind"), "file")
-        icon_label = QLabel()
-        icon_label.setPixmap(icon_lib.get_pixmap(icon_name, _ICON_MUTED, tokens.ICON_MD))
-        icon_label.setFixedSize(tokens.ICON_MD, tokens.ICON_MD)
-        layout.addWidget(icon_label)
-
-        text_layout = QVBoxLayout()
-        text_layout.setSpacing(2)
-
-        name_label = QLabel(entry.get("filename", ""))
-        name_label.setObjectName("activityName")
-        text_layout.addWidget(name_label)
-
-        detail_label = QLabel(entry.get("detail", ""))
-        detail_label.setObjectName("activityDetail")
-        text_layout.addWidget(detail_label)
-
-        layout.addLayout(text_layout, 1)
-
-        time_label = QLabel(_relative_time(entry.get("timestamp", "")))
-        time_label.setObjectName("activityTime")
-        layout.addWidget(time_label, alignment=Qt.AlignmentFlag.AlignTop)
-
-
 class HomePage(QWidget):
     """Home / Tool Command Center: hero, one big drop workspace that
-    auto-routes dropped files, Quick Actions, and Recent Activity."""
+    auto-routes dropped files, and Quick Actions."""
 
     def __init__(self, notify, open_tool, open_dropped_files, tools, parent=None):
         super().__init__(parent)
@@ -235,31 +167,6 @@ class HomePage(QWidget):
             )
             layout.addWidget(row)
             layout.addSpacing(8)
-
-        layout.addSpacing(20)
-
-        # =========================
-        # RECENT ACTIVITY
-        # =========================
-
-        activity_heading = QLabel("Recent Activity")
-        activity_heading.setObjectName("sectionHeading")
-        layout.addWidget(activity_heading)
-        layout.addSpacing(10)
-
-        recent = activity_store.get_recent(limit=8)
-
-        if not recent:
-            empty_title = QLabel("Nothing processed yet")
-            empty_title.setObjectName("emptyStateTitle")
-            layout.addWidget(empty_title)
-
-            empty_subtitle = QLabel("Files you process will show up here.")
-            empty_subtitle.setObjectName("emptyStateSubtitle")
-            layout.addWidget(empty_subtitle)
-        else:
-            for entry in recent:
-                layout.addWidget(ActivityRow(entry))
 
         layout.addStretch()
 

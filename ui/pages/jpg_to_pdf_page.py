@@ -2,7 +2,6 @@ import os
 
 from PySide6.QtWidgets import QApplication, QFileDialog, QLabel, QVBoxLayout, QWidget
 
-import activity_store
 from tools.image_resizer import format_file_size, get_image_size
 from tools.jpg_to_pdf import convert_images_to_pdf
 from ui.components.buttons import AnimatedButton, ProcessingBar
@@ -136,12 +135,6 @@ class JpgToPdfPage(QWidget):
             output_name = os.path.splitext(os.path.basename(self.input_paths[0]))[0]
             output_path = convert_images_to_pdf(self.input_paths, output_name)
             self._last_output_path = output_path
-
-            activity_store.record(
-                "jpg_to_pdf",
-                os.path.basename(output_path),
-                f"Combined {len(self.input_paths)} image(s) into a PDF",
-            )
 
             self.convert_button.set_processing(False)
             self.processing_bar.hide()

@@ -60,9 +60,10 @@ class NumberField(QWidget):
         row.setSpacing(8)
 
         self.spin = _NoScrollSpinBox()
+        self.spin.setObjectName("numberFieldSpin")
         self.spin.setRange(minimum, maximum)
         self.spin.setValue(value)
-        self.spin.setMinimumHeight(40)
+        self.spin.setFixedHeight(42)
         self.spin.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
         self.spin.setButtonSymbols(QSpinBox.ButtonSymbols.UpDownArrows)
         self.spin.valueChanged.connect(self.valueChanged.emit)
@@ -72,6 +73,8 @@ class NumberField(QWidget):
         if unit_text:
             unit_label = QLabel(unit_text)
             unit_label.setObjectName("numberFieldUnit")
+            unit_label.setFixedHeight(42)
+            unit_label.setAlignment(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft)
             row.addWidget(unit_label)
 
         layout.addLayout(row)

@@ -2,7 +2,6 @@ import os
 
 from PySide6.QtWidgets import QApplication, QFileDialog, QFrame, QHBoxLayout, QLabel, QVBoxLayout, QWidget
 
-import activity_store
 from tools.unlock_pdf import unlock_pdf
 from ui import icons as icon_lib
 from ui.components.buttons import AnimatedButton, ProcessingBar
@@ -130,8 +129,6 @@ class UnlockPdfPage(QWidget):
         try:
             output_path = unlock_pdf(self.input_path, self.password_field.text())
             self._last_output_folder = os.path.dirname(output_path)
-
-            activity_store.record("unlock", os.path.basename(output_path), "Password removed")
 
             self.password_field.clear()
 
