@@ -43,3 +43,25 @@ def set_output_folder(path):
 
 def reset_output_folder():
     _settings().remove("output_folder")
+
+
+def get_default_target_kb():
+    try:
+        return max(5, min(5000, int(_settings().value("default_target_kb", 200))))
+    except (TypeError, ValueError):
+        return 200
+
+
+def set_default_target_kb(value):
+    _settings().setValue("default_target_kb", int(value))
+
+
+def get_default_quality():
+    try:
+        return max(5, min(100, int(_settings().value("default_quality", 90))))
+    except (TypeError, ValueError):
+        return 90
+
+
+def set_default_quality(value):
+    _settings().setValue("default_quality", int(value))
