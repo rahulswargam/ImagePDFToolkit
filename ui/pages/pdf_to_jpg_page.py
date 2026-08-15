@@ -1,27 +1,18 @@
 import os
 
-from PySide6.QtWidgets import (
-    QFileDialog,
-    QFrame,
-    QHBoxLayout,
-    QLabel,
-    QMessageBox,
-    QVBoxLayout,
-    QWidget,
-)
+from PySide6.QtWidgets import QApplication, QFileDialog, QLabel, QVBoxLayout, QWidget
 
+import activity_store
+from tools.image_resizer import format_file_size
 from tools.pdf_to_jpg import convert_pdf_to_jpg
-from ui.widgets import (
-    MAX_BATCH_FILES,
-    AnimatedButton,
-    DropArea,
-    FileListWidget,
-    clip_to_max_files,
-)
+from ui.components.buttons import AnimatedButton, ProcessingBar
+from ui.components.feedback import Modal, SuccessPanel
+from ui.components.workspace import MAX_BATCH_FILES, DropWorkspace, FileGrid, clip_to_max_files
 
 EXTENSIONS = (".pdf",)
 MAX_QUALITY = 100
 MAX_DPI = 600
+_ACCENT = "#ef4444"
 
 
 class PdfToJpgPage(QWidget):
@@ -31,6 +22,7 @@ class PdfToJpgPage(QWidget):
 
         self.notify = notify
         self.input_paths = []
+        self._last_output_folder = None
 
         self.setup_ui()
 
@@ -38,51 +30,28 @@ class PdfToJpgPage(QWidget):
 
         main_layout = QVBoxLayout(self)
         main_layout.setContentsMargins(0, 15, 0, 0)
-        main_layout.setSpacing(15)
+        main_layout.setSpacing(16)
 
-        file_card = QFrame()
-        file_card.setObjectName("toolCard")
-
-        file_layout = QHBoxLayout(file_card)
-        file_layout.setContentsMargins(20, 20, 20, 20)
-        file_layout.setSpacing(20)
-
-        self.drop_area = DropArea(
+        self.drop_workspace = DropWorkspace(
             EXTENSIONS,
+            _ACCENT,
             multiple=True,
-            placeholder=f"Drag & drop up to {MAX_BATCH_FILES} PDFs here\nor click Select PDFs",
+            title="Drop PDFs here",
+            subtitle=f"Drag & drop up to {MAX_BATCH_FILES} PDFs, or click to browse",
+            hint="PDF",
         )
-        self.drop_area.setFixedSize(280, 210)
-        self.drop_area.filesDropped.connect(self.load_pdfs)
+        self.drop_workspace.filesDropped.connect(self.load_pdfs)
+        self.drop_workspace.browseRequested.connect(self.select_pdfs)
+        main_layout.addWidget(self.drop_workspace)
 
-        file_layout.addWidget(self.drop_area)
+        self.summary_label = QLabel("")
+        self.summary_label.setObjectName("pageSubtitle")
+        self.summary_label.hide()
+        main_layout.addWidget(self.summary_label)
 
-        info_layout = QVBoxLayout()
-        info_layout.setSpacing(10)
-
-        select_button = AnimatedButton("Select PDFs")
-        select_button.setObjectName("toolButton")
-        select_button.clicked.connect(self.select_pdfs)
-
-        self.files_label = QLabel("No PDFs selected")
-        self.files_label.setObjectName("toolDescription")
-        self.files_label.setWordWrap(True)
-
-        self.output_folder_label = QLabel("Output: Desktop\\Image & PDF Toolkit\\<pdf name>")
-        self.output_folder_label.setObjectName("toolDescription")
-        self.output_folder_label.setWordWrap(True)
-
-        info_layout.addWidget(select_button)
-        info_layout.addWidget(self.files_label)
-        info_layout.addStretch()
-        info_layout.addWidget(self.output_folder_label)
-
-        file_layout.addLayout(info_layout)
-
-        main_layout.addWidget(file_card)
-
-        self.file_list = FileListWidget(icon_glyph="📄")
-        main_layout.addWidget(self.file_list)
+        self.file_grid = FileGrid(lambda path: "pdf", self._pdf_meta)
+        self.file_grid.filesChanged.connect(self.on_files_changed)
+        main_layout.addWidget(self.file_grid)
 
         note = QLabel(
             "Each PDF's pages are exported at maximum quality and resolution "
@@ -92,15 +61,28 @@ class PdfToJpgPage(QWidget):
         note.setWordWrap(True)
         main_layout.addWidget(note)
 
-        convert_button = AnimatedButton("Convert to JPG")
-        convert_button.setObjectName("toolButton")
-        convert_button.setMinimumHeight(45)
-        convert_button.clicked.connect(self.convert)
+        self.convert_button = AnimatedButton("Convert to JPG")
+        self.convert_button.setObjectName("toolButton")
+        self.convert_button.setMinimumHeight(45)
+        self.convert_button.setEnabled(False)
+        self.convert_button.clicked.connect(self.convert)
+        main_layout.addWidget(self.convert_button)
 
-        main_layout.addWidget(convert_button)
+        self.processing_bar = ProcessingBar()
+        main_layout.addWidget(self.processing_bar)
+
+        self.success_panel = SuccessPanel()
+        self.success_panel.openFolderClicked.connect(self._open_output_folder)
+        self.success_panel.doneClicked.connect(self._reset)
+        main_layout.addWidget(self.success_panel)
+
         main_layout.addStretch()
 
-        self.file_list.filesChanged.connect(self.on_files_changed)
+    def _pdf_meta(self, path):
+        try:
+            return format_file_size(os.path.getsize(path))
+        except OSError:
+            return ""
 
     def select_pdfs(self):
 
@@ -116,11 +98,11 @@ class PdfToJpgPage(QWidget):
         file_paths, truncated = clip_to_max_files(list(self.input_paths) + list(file_paths))
 
         self.input_paths = file_paths
-        self.file_list.set_files(file_paths)
+        self.file_grid.set_files(file_paths)
         self.refresh_summary()
 
         if truncated:
-            QMessageBox.warning(
+            Modal.warn(
                 self,
                 "Too Many PDFs",
                 f"Only the first {MAX_BATCH_FILES} PDFs were kept "
@@ -134,21 +116,32 @@ class PdfToJpgPage(QWidget):
     def refresh_summary(self):
 
         file_paths = self.input_paths
+        self.success_panel.hide()
 
         if not file_paths:
-            self.files_label.setText("No PDFs selected")
-            self.drop_area.reset()
+            self.summary_label.hide()
+            self.convert_button.setEnabled(False)
+            self.drop_workspace.set_text(
+                "Drop PDFs here",
+                f"Drag & drop up to {MAX_BATCH_FILES} PDFs, or click to browse",
+            )
             return
 
         plural = "PDF" if len(file_paths) == 1 else "PDFs"
-        self.files_label.setText(f"{len(file_paths)} {plural} selected")
-        self.drop_area.setText(f"{len(file_paths)} {plural} ready")
+        self.summary_label.setText(f"{len(file_paths)} {plural} selected")
+        self.summary_label.show()
+
+        self.convert_button.setEnabled(True)
+        self.drop_workspace.set_text(f"{len(file_paths)} {plural} ready", "Drop more PDFs or click to add")
 
     def convert(self):
 
         if not self.input_paths:
-            QMessageBox.warning(self, "No PDFs", "Please select at least one PDF first.")
             return
+
+        self.convert_button.set_processing(True, "Converting…")
+        self.processing_bar.show()
+        QApplication.processEvents()
 
         converted_pdfs = 0
         total_pages = 0
@@ -162,20 +155,35 @@ class PdfToJpgPage(QWidget):
                 total_pages += len(output_paths)
                 last_output_root = os.path.dirname(os.path.dirname(output_paths[0]))
 
+                activity_store.record(
+                    "pdf_to_jpg",
+                    os.path.basename(input_path),
+                    f"Converted to JPG · {len(output_paths)} page(s)",
+                )
+
             except Exception as error:
                 failed.append(f"{os.path.basename(input_path)}: {error}")
+
+        self.convert_button.set_processing(False)
+        self.processing_bar.hide()
+        self._last_output_folder = last_output_root
 
         if converted_pdfs:
             pdf_plural = "PDF" if converted_pdfs == 1 else "PDFs"
             page_plural = "page" if total_pages == 1 else "pages"
-            self.notify(
-                f"Converted {converted_pdfs} {pdf_plural} — {total_pages} {page_plural} total, "
-                f"saved to {last_output_root}"
+            self.success_panel.show_success(
+                "Conversion complete",
+                f"{converted_pdfs} {pdf_plural} converted — {total_pages} {page_plural} total",
             )
 
         if failed:
-            QMessageBox.critical(
-                self,
-                "Some PDFs Failed",
-                "Could not convert:\n\n" + "\n".join(failed),
-            )
+            Modal.warn(self, "Some PDFs Failed", "Could not convert:\n\n" + "\n".join(failed))
+
+    def _open_output_folder(self):
+        if self._last_output_folder and os.path.isdir(self._last_output_folder):
+            os.startfile(self._last_output_folder)
+
+    def _reset(self):
+        self.input_paths = []
+        self.file_grid.set_files([])
+        self.refresh_summary()

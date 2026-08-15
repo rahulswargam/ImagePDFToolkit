@@ -1,25 +1,16 @@
 import os
 
-from PySide6.QtWidgets import (
-    QFileDialog,
-    QFrame,
-    QHBoxLayout,
-    QLabel,
-    QMessageBox,
-    QVBoxLayout,
-    QWidget,
-)
+from PySide6.QtWidgets import QApplication, QFileDialog, QLabel, QVBoxLayout, QWidget
 
+import activity_store
+from tools.image_resizer import format_file_size, get_image_size
 from tools.jpg_to_pdf import convert_images_to_pdf
-from ui.widgets import (
-    MAX_BATCH_FILES,
-    AnimatedButton,
-    DropArea,
-    FileListWidget,
-    clip_to_max_files,
-)
+from ui.components.buttons import AnimatedButton, ProcessingBar
+from ui.components.feedback import Modal, SuccessPanel
+from ui.components.workspace import MAX_BATCH_FILES, DropWorkspace, FileGrid, clip_to_max_files
 
 EXTENSIONS = (".jpg", ".jpeg", ".png", ".bmp", ".webp")
+_ACCENT = "#ef4444"
 
 
 class JpgToPdfPage(QWidget):
@@ -29,6 +20,7 @@ class JpgToPdfPage(QWidget):
 
         self.notify = notify
         self.input_paths = []
+        self._last_output_path = None
 
         self.setup_ui()
 
@@ -36,61 +28,53 @@ class JpgToPdfPage(QWidget):
 
         main_layout = QVBoxLayout(self)
         main_layout.setContentsMargins(0, 15, 0, 0)
-        main_layout.setSpacing(15)
+        main_layout.setSpacing(16)
 
-        file_card = QFrame()
-        file_card.setObjectName("toolCard")
-
-        file_layout = QHBoxLayout(file_card)
-        file_layout.setContentsMargins(20, 20, 20, 20)
-        file_layout.setSpacing(20)
-
-        self.drop_area = DropArea(
+        self.drop_workspace = DropWorkspace(
             EXTENSIONS,
+            _ACCENT,
             multiple=True,
-            placeholder=f"Drag & drop up to {MAX_BATCH_FILES} images here\n(order = page order)",
+            title="Drop images here",
+            subtitle=f"Drag & drop up to {MAX_BATCH_FILES} images — order becomes page order",
+            hint="JPG · PNG · BMP · WEBP",
         )
-        self.drop_area.setFixedSize(280, 210)
-        self.drop_area.filesDropped.connect(self.load_images)
+        self.drop_workspace.filesDropped.connect(self.load_images)
+        self.drop_workspace.browseRequested.connect(self.select_images)
+        main_layout.addWidget(self.drop_workspace)
 
-        file_layout.addWidget(self.drop_area)
+        self.summary_label = QLabel("")
+        self.summary_label.setObjectName("pageSubtitle")
+        self.summary_label.hide()
+        main_layout.addWidget(self.summary_label)
 
-        info_layout = QVBoxLayout()
-        info_layout.setSpacing(10)
+        self.file_grid = FileGrid(lambda path: "image", self._image_meta)
+        self.file_grid.filesChanged.connect(self.on_files_changed)
+        main_layout.addWidget(self.file_grid)
 
-        select_button = AnimatedButton("Select Images")
-        select_button.setObjectName("toolButton")
-        select_button.clicked.connect(self.select_images)
+        self.convert_button = AnimatedButton("Convert to PDF")
+        self.convert_button.setObjectName("toolButton")
+        self.convert_button.setMinimumHeight(45)
+        self.convert_button.setEnabled(False)
+        self.convert_button.clicked.connect(self.convert)
+        main_layout.addWidget(self.convert_button)
 
-        self.files_label = QLabel("No images selected")
-        self.files_label.setObjectName("toolDescription")
-        self.files_label.setWordWrap(True)
+        self.processing_bar = ProcessingBar()
+        main_layout.addWidget(self.processing_bar)
 
-        self.output_folder_label = QLabel("Output: Desktop\\Image & PDF Toolkit")
-        self.output_folder_label.setObjectName("toolDescription")
-        self.output_folder_label.setWordWrap(True)
+        self.success_panel = SuccessPanel()
+        self.success_panel.openFolderClicked.connect(self._open_output_folder)
+        self.success_panel.doneClicked.connect(self._reset)
+        main_layout.addWidget(self.success_panel)
 
-        info_layout.addWidget(select_button)
-        info_layout.addWidget(self.files_label)
-        info_layout.addStretch()
-        info_layout.addWidget(self.output_folder_label)
-
-        file_layout.addLayout(info_layout)
-
-        main_layout.addWidget(file_card)
-
-        self.file_list = FileListWidget(icon_glyph="🖼")
-        main_layout.addWidget(self.file_list)
-
-        convert_button = AnimatedButton("Convert to PDF")
-        convert_button.setObjectName("toolButton")
-        convert_button.setMinimumHeight(45)
-        convert_button.clicked.connect(self.convert)
-
-        main_layout.addWidget(convert_button)
         main_layout.addStretch()
 
-        self.file_list.filesChanged.connect(self.on_files_changed)
+    def _image_meta(self, path):
+        try:
+            size_text = format_file_size(os.path.getsize(path))
+            width, height = get_image_size(path)
+            return f"{size_text} · {width}×{height}"
+        except Exception:
+            return ""
 
     def select_images(self):
 
@@ -109,11 +93,11 @@ class JpgToPdfPage(QWidget):
         file_paths, truncated = clip_to_max_files(list(self.input_paths) + list(file_paths))
 
         self.input_paths = file_paths
-        self.file_list.set_files(file_paths)
+        self.file_grid.set_files(file_paths)
         self.refresh_summary()
 
         if truncated:
-            QMessageBox.warning(
+            Modal.warn(
                 self,
                 "Too Many Images",
                 f"Only the first {MAX_BATCH_FILES} images were kept "
@@ -127,26 +111,61 @@ class JpgToPdfPage(QWidget):
     def refresh_summary(self):
 
         file_paths = self.input_paths
+        self.success_panel.hide()
 
         if not file_paths:
-            self.files_label.setText("No images selected")
-            self.drop_area.reset()
+            self.summary_label.hide()
+            self.convert_button.setEnabled(False)
+            self.drop_workspace.set_text(
+                "Drop images here",
+                f"Drag & drop up to {MAX_BATCH_FILES} images — order becomes page order",
+            )
             return
 
         plural = "image" if len(file_paths) == 1 else "images"
-        self.files_label.setText(f"{len(file_paths)} {plural} selected — order = page order")
-        self.drop_area.setText(f"{len(file_paths)} {plural} ready")
+        self.summary_label.setText(f"{len(file_paths)} {plural} selected — order = page order")
+        self.summary_label.show()
+
+        self.convert_button.setEnabled(True)
+        self.drop_workspace.set_text(f"{len(file_paths)} {plural} ready", "Drop more images or click to add")
 
     def convert(self):
 
         if not self.input_paths:
-            QMessageBox.warning(self, "No Images", "Please select at least one image.")
             return
+
+        self.convert_button.set_processing(True, "Converting…")
+        self.processing_bar.show()
+        QApplication.processEvents()
 
         try:
             output_name = os.path.splitext(os.path.basename(self.input_paths[0]))[0]
             output_path = convert_images_to_pdf(self.input_paths, output_name)
-            self.notify(f"Saved to {output_path}")
+            self._last_output_path = output_path
+
+            activity_store.record(
+                "jpg_to_pdf",
+                os.path.basename(output_path),
+                f"Combined {len(self.input_paths)} image(s) into a PDF",
+            )
+
+            self.success_panel.show_success(
+                "PDF created",
+                f"{len(self.input_paths)} image(s) combined into {os.path.basename(output_path)}",
+            )
 
         except Exception as error:
-            QMessageBox.critical(self, "Error", f"Could not create PDF.\n\n{error}")
+            Modal.warn(self, "Conversion Failed", f"Could not create PDF.\n\n{error}")
+
+        finally:
+            self.convert_button.set_processing(False)
+            self.processing_bar.hide()
+
+    def _open_output_folder(self):
+        if self._last_output_path and os.path.isdir(os.path.dirname(self._last_output_path)):
+            os.startfile(os.path.dirname(self._last_output_path))
+
+    def _reset(self):
+        self.input_paths = []
+        self.file_grid.set_files([])
+        self.refresh_summary()

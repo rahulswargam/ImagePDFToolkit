@@ -1,20 +1,18 @@
 import os
 
-from PySide6.QtWidgets import (
-    QFileDialog,
-    QFrame,
-    QHBoxLayout,
-    QLabel,
-    QLineEdit,
-    QMessageBox,
-    QVBoxLayout,
-    QWidget,
-)
+from PySide6.QtWidgets import QApplication, QFileDialog, QFrame, QHBoxLayout, QLabel, QVBoxLayout, QWidget
 
+import activity_store
 from tools.unlock_pdf import unlock_pdf
-from ui.widgets import AnimatedButton, DropArea, RevealButton
+from ui import icons as icon_lib
+from ui.components.buttons import AnimatedButton, ProcessingBar
+from ui.components.feedback import Modal, SuccessPanel
+from ui.components.inputs import PasswordField
+from ui.components.pdf_preview import PdfPreviewCard
+from ui.components.workspace import DropWorkspace
 
 EXTENSIONS = (".pdf",)
+_ACCENT = "#ef4444"
 
 
 class UnlockPdfPage(QWidget):
@@ -24,6 +22,8 @@ class UnlockPdfPage(QWidget):
 
         self.notify = notify
         self.input_path = None
+        self._last_output_folder = None
+        self._preview_card = None
 
         self.setup_ui()
 
@@ -31,83 +31,64 @@ class UnlockPdfPage(QWidget):
 
         main_layout = QVBoxLayout(self)
         main_layout.setContentsMargins(0, 15, 0, 0)
-        main_layout.setSpacing(15)
+        main_layout.setSpacing(16)
 
-        file_card = QFrame()
-        file_card.setObjectName("toolCard")
+        header = QHBoxLayout()
+        header.setSpacing(10)
+        shield_icon = QLabel()
+        shield_icon.setPixmap(icon_lib.get_pixmap("unlock", _ACCENT, 22))
+        header.addWidget(shield_icon)
+        header_text = QLabel("Removes password protection from a PDF you already have access to.")
+        header_text.setObjectName("pageSubtitle")
+        header_text.setWordWrap(True)
+        header.addWidget(header_text, 1)
+        main_layout.addLayout(header)
 
-        file_layout = QHBoxLayout(file_card)
-        file_layout.setContentsMargins(20, 20, 20, 20)
-        file_layout.setSpacing(20)
-
-        self.drop_area = DropArea(
+        self.drop_workspace = DropWorkspace(
             EXTENSIONS,
+            _ACCENT,
             multiple=False,
-            placeholder="Drag & drop a locked PDF here\nor click Select PDF",
+            title="Drop a locked PDF here",
+            subtitle="Drag & drop a PDF, or click to browse",
+            hint="PDF",
         )
-        self.drop_area.setFixedSize(280, 210)
-        self.drop_area.filesDropped.connect(lambda paths: self.load_pdf(paths[0]))
+        self.drop_workspace.filesDropped.connect(lambda paths: self.load_pdf(paths[0]))
+        self.drop_workspace.browseRequested.connect(self.select_pdf)
+        main_layout.addWidget(self.drop_workspace)
 
-        file_layout.addWidget(self.drop_area)
-
-        info_layout = QVBoxLayout()
-        info_layout.setSpacing(10)
-
-        select_button = AnimatedButton("Select PDF")
-        select_button.setObjectName("toolButton")
-        select_button.clicked.connect(self.select_pdf)
-
-        self.file_label = QLabel("No PDF selected")
-        self.file_label.setObjectName("toolDescription")
-        self.file_label.setWordWrap(True)
-
-        self.output_folder_label = QLabel("Output: Desktop\\Image & PDF Toolkit")
-        self.output_folder_label.setObjectName("toolDescription")
-        self.output_folder_label.setWordWrap(True)
-
-        info_layout.addWidget(select_button)
-        info_layout.addWidget(self.file_label)
-        info_layout.addStretch()
-        info_layout.addWidget(self.output_folder_label)
-
-        file_layout.addLayout(info_layout)
-
-        main_layout.addWidget(file_card)
+        self.preview_container = QVBoxLayout()
+        main_layout.addLayout(self.preview_container)
 
         settings_card = QFrame()
         settings_card.setObjectName("toolCard")
 
         settings_layout = QVBoxLayout(settings_card)
         settings_layout.setContentsMargins(20, 18, 20, 18)
-        settings_layout.setSpacing(12)
+        settings_layout.setSpacing(14)
 
         settings_title = QLabel("Current Password")
         settings_title.setObjectName("toolTitle")
         settings_layout.addWidget(settings_title)
 
-        self.password_edit = QLineEdit()
-        self.password_edit.setPlaceholderText("Password")
-        self.password_edit.setEchoMode(QLineEdit.EchoMode.Password)
-
-        reveal_button = RevealButton(self.password_edit)
-        reveal_button.setFixedWidth(72)
-        reveal_button.setToolTip("Hold to show the password")
-
-        password_row = QHBoxLayout()
-        password_row.setSpacing(10)
-        password_row.addWidget(self.password_edit)
-        password_row.addWidget(reveal_button)
-
-        settings_layout.addLayout(password_row)
+        self.password_field = PasswordField("Password")
+        settings_layout.addWidget(self.password_field)
 
         main_layout.addWidget(settings_card)
 
-        unlock_button = AnimatedButton("Unlock PDF")
-        unlock_button.setObjectName("toolButton")
-        unlock_button.setMinimumHeight(45)
-        unlock_button.clicked.connect(self.unlock)
+        self.unlock_button = AnimatedButton("Unlock PDF")
+        self.unlock_button.setObjectName("toolButton")
+        self.unlock_button.setMinimumHeight(45)
+        self.unlock_button.clicked.connect(self.unlock)
+        main_layout.addWidget(self.unlock_button)
 
-        main_layout.addWidget(unlock_button)
+        self.processing_bar = ProcessingBar()
+        main_layout.addWidget(self.processing_bar)
+
+        self.success_panel = SuccessPanel()
+        self.success_panel.openFolderClicked.connect(self._open_output_folder)
+        self.success_panel.doneClicked.connect(self._reset)
+        main_layout.addWidget(self.success_panel)
+
         main_layout.addStretch()
 
     def select_pdf(self):
@@ -120,20 +101,61 @@ class UnlockPdfPage(QWidget):
     def load_pdf(self, file_path):
 
         self.input_path = file_path
-        self.file_label.setText(os.path.basename(file_path))
-        self.drop_area.setText(os.path.basename(file_path))
+        self.success_panel.hide()
+
+        if self._preview_card is not None:
+            self._preview_card.setParent(None)
+            self._preview_card.deleteLater()
+
+        self._preview_card = PdfPreviewCard(file_path)
+        self._preview_card.removed.connect(self._clear_pdf)
+        self.preview_container.addWidget(self._preview_card)
+
+        self.drop_workspace.set_text(os.path.basename(file_path), "Drop a different PDF or click to replace")
+
+    def _clear_pdf(self):
+        self.input_path = None
+
+        if self._preview_card is not None:
+            self._preview_card.setParent(None)
+            self._preview_card.deleteLater()
+            self._preview_card = None
+
+        self.drop_workspace.set_text("Drop a locked PDF here", "Drag & drop a PDF, or click to browse")
 
     def unlock(self):
 
         if not self.input_path:
-            QMessageBox.warning(self, "No PDF", "Please select a PDF first.")
+            Modal.warn(self, "No PDF", "Please select a PDF first.")
             return
 
-        try:
-            output_path = unlock_pdf(self.input_path, self.password_edit.text())
-            self.notify(f"Saved to {output_path}")
+        self.unlock_button.set_processing(True, "Unlocking…")
+        self.processing_bar.show()
+        QApplication.processEvents()
 
-            self.password_edit.clear()
+        try:
+            output_path = unlock_pdf(self.input_path, self.password_field.text())
+            self._last_output_folder = os.path.dirname(output_path)
+
+            activity_store.record("unlock", os.path.basename(output_path), "Password removed")
+
+            self.success_panel.show_success(
+                "PDF unlocked",
+                f"{os.path.basename(output_path)} no longer requires a password",
+            )
+
+            self.password_field.clear()
 
         except Exception as error:
-            QMessageBox.critical(self, "Error", f"Could not unlock PDF.\n\n{error}")
+            Modal.warn(self, "Could Not Unlock PDF", str(error))
+
+        finally:
+            self.unlock_button.set_processing(False)
+            self.processing_bar.hide()
+
+    def _open_output_folder(self):
+        if self._last_output_folder and os.path.isdir(self._last_output_folder):
+            os.startfile(self._last_output_folder)
+
+    def _reset(self):
+        self._clear_pdf()

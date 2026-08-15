@@ -1,26 +1,17 @@
 import os
 
-from PySide6.QtWidgets import (
-    QFileDialog,
-    QFrame,
-    QHBoxLayout,
-    QLabel,
-    QMessageBox,
-    QSpinBox,
-    QVBoxLayout,
-    QWidget,
-)
+from PySide6.QtWidgets import QApplication, QFileDialog, QFrame, QHBoxLayout, QLabel, QVBoxLayout, QWidget
 
+import activity_store
+import settings_store
 from tools.image_resizer import compress_to_target_size, format_file_size, get_image_size
-from ui.widgets import (
-    MAX_BATCH_FILES,
-    AnimatedButton,
-    DropArea,
-    FileListWidget,
-    clip_to_max_files,
-)
+from ui.components.buttons import AnimatedButton, ProcessingBar
+from ui.components.feedback import Modal, SuccessPanel
+from ui.components.inputs import SliderInput
+from ui.components.workspace import MAX_BATCH_FILES, DropWorkspace, FileGrid, clip_to_max_files
 
 EXTENSIONS = (".jpg", ".jpeg", ".png", ".webp", ".bmp")
+_ACCENT = "#ef4444"
 
 
 class ImageResizerPage(QWidget):
@@ -30,6 +21,7 @@ class ImageResizerPage(QWidget):
 
         self.notify = notify
         self.input_paths = []
+        self._last_output_folder = None
 
         self.setup_ui()
 
@@ -37,59 +29,32 @@ class ImageResizerPage(QWidget):
 
         main_layout = QVBoxLayout(self)
         main_layout.setContentsMargins(0, 15, 0, 0)
-        main_layout.setSpacing(15)
+        main_layout.setSpacing(16)
 
         # =========================
-        # FILE SELECTION
+        # DROP WORKSPACE
         # =========================
 
-        file_card = QFrame()
-        file_card.setObjectName("toolCard")
-
-        file_layout = QHBoxLayout(file_card)
-        file_layout.setContentsMargins(20, 20, 20, 20)
-        file_layout.setSpacing(20)
-
-        self.drop_area = DropArea(
+        self.drop_workspace = DropWorkspace(
             EXTENSIONS,
+            _ACCENT,
             multiple=True,
-            placeholder=f"Drag & drop up to {MAX_BATCH_FILES} images here\nor click Select Images",
+            title="Drop images here",
+            subtitle=f"Drag & drop up to {MAX_BATCH_FILES} images, or click to browse",
+            hint="JPG · PNG · WEBP · BMP",
         )
-        self.drop_area.setFixedSize(280, 210)
-        self.drop_area.filesDropped.connect(self.load_images)
+        self.drop_workspace.filesDropped.connect(self.load_images)
+        self.drop_workspace.browseRequested.connect(self.select_images)
+        main_layout.addWidget(self.drop_workspace)
 
-        file_layout.addWidget(self.drop_area)
+        self.summary_label = QLabel("")
+        self.summary_label.setObjectName("pageSubtitle")
+        self.summary_label.hide()
+        main_layout.addWidget(self.summary_label)
 
-        info_layout = QVBoxLayout()
-        info_layout.setSpacing(10)
-
-        select_button = AnimatedButton("Select Images")
-        select_button.setObjectName("toolButton")
-        select_button.clicked.connect(self.select_images)
-
-        self.files_label = QLabel("No images selected")
-        self.files_label.setObjectName("toolDescription")
-        self.files_label.setWordWrap(True)
-
-        self.size_label = QLabel("")
-        self.size_label.setObjectName("toolDescription")
-
-        self.output_folder_label = QLabel("Output: Desktop\\Image & PDF Toolkit")
-        self.output_folder_label.setObjectName("toolDescription")
-        self.output_folder_label.setWordWrap(True)
-
-        info_layout.addWidget(select_button)
-        info_layout.addWidget(self.files_label)
-        info_layout.addWidget(self.size_label)
-        info_layout.addStretch()
-        info_layout.addWidget(self.output_folder_label)
-
-        file_layout.addLayout(info_layout)
-
-        main_layout.addWidget(file_card)
-
-        self.file_list = FileListWidget(icon_glyph="🖼")
-        main_layout.addWidget(self.file_list)
+        self.file_grid = FileGrid(lambda path: "image", self._image_meta)
+        self.file_grid.filesChanged.connect(self.on_files_changed)
+        main_layout.addWidget(self.file_grid)
 
         # =========================
         # COMPRESSION SETTINGS
@@ -100,7 +65,7 @@ class ImageResizerPage(QWidget):
 
         settings_layout = QVBoxLayout(settings_card)
         settings_layout.setContentsMargins(20, 18, 20, 18)
-        settings_layout.setSpacing(14)
+        settings_layout.setSpacing(16)
 
         settings_title = QLabel("Compression Settings")
         settings_title.setObjectName("toolTitle")
@@ -116,51 +81,48 @@ class ImageResizerPage(QWidget):
         settings_layout.addWidget(description)
 
         options_layout = QHBoxLayout()
-        options_layout.setSpacing(16)
+        options_layout.setSpacing(28)
 
-        target_layout = QVBoxLayout()
-        target_layout.setSpacing(6)
-        target_label = QLabel("Target Size")
-        target_label.setObjectName("fieldLabel")
-        self.target_kb_spin = QSpinBox()
-        self.target_kb_spin.setMinimumHeight(40)
-        self.target_kb_spin.setRange(5, 51200)
-        self.target_kb_spin.setValue(200)
-        self.target_kb_spin.setSuffix(" KB")
-        target_layout.addWidget(target_label)
-        target_layout.addWidget(self.target_kb_spin)
-
-        quality_layout = QVBoxLayout()
-        quality_layout.setSpacing(6)
-        quality_label = QLabel("Maximum JPG Quality")
-        quality_label.setObjectName("fieldLabel")
-        self.quality_spin = QSpinBox()
-        self.quality_spin.setMinimumHeight(40)
-        self.quality_spin.setRange(5, 100)
-        self.quality_spin.setValue(90)
-        self.quality_spin.setSuffix("%")
-        quality_layout.addWidget(quality_label)
-        quality_layout.addWidget(self.quality_spin)
-
-        options_layout.addLayout(target_layout)
-        options_layout.addLayout(quality_layout)
+        self.target_slider = SliderInput(
+            "Target Size", 5, 5000, settings_store.get_default_target_kb(), suffix=" KB"
+        )
+        self.quality_slider = SliderInput(
+            "Maximum JPG Quality", 5, 100, settings_store.get_default_quality(), suffix="%"
+        )
+        options_layout.addWidget(self.target_slider)
+        options_layout.addWidget(self.quality_slider)
         settings_layout.addLayout(options_layout)
 
         main_layout.addWidget(settings_card)
 
         # =========================
-        # COMPRESS BUTTON
+        # ACTION / FEEDBACK
         # =========================
 
-        compress_button = AnimatedButton("Compress and Save")
-        compress_button.setObjectName("toolButton")
-        compress_button.setMinimumHeight(45)
-        compress_button.clicked.connect(self.compress_and_save)
+        self.compress_button = AnimatedButton("Compress Images")
+        self.compress_button.setObjectName("toolButton")
+        self.compress_button.setMinimumHeight(45)
+        self.compress_button.setEnabled(False)
+        self.compress_button.clicked.connect(self.compress_and_save)
+        main_layout.addWidget(self.compress_button)
 
-        main_layout.addWidget(compress_button)
+        self.processing_bar = ProcessingBar()
+        main_layout.addWidget(self.processing_bar)
+
+        self.success_panel = SuccessPanel()
+        self.success_panel.openFolderClicked.connect(self._open_output_folder)
+        self.success_panel.doneClicked.connect(self._reset)
+        main_layout.addWidget(self.success_panel)
+
         main_layout.addStretch()
 
-        self.file_list.filesChanged.connect(self.on_files_changed)
+    def _image_meta(self, path):
+        try:
+            size_text = format_file_size(os.path.getsize(path))
+            width, height = get_image_size(path)
+            return f"{size_text} · {width}×{height}"
+        except Exception:
+            return ""
 
     def select_images(self):
 
@@ -179,11 +141,11 @@ class ImageResizerPage(QWidget):
         file_paths, truncated = clip_to_max_files(list(self.input_paths) + list(file_paths))
 
         self.input_paths = file_paths
-        self.file_list.set_files(file_paths)
+        self.file_grid.set_files(file_paths)
         self.refresh_summary()
 
         if truncated:
-            QMessageBox.warning(
+            Modal.warn(
                 self,
                 "Too Many Images",
                 f"Only the first {MAX_BATCH_FILES} images were kept "
@@ -197,57 +159,86 @@ class ImageResizerPage(QWidget):
     def refresh_summary(self):
 
         file_paths = self.input_paths
+        self.success_panel.hide()
 
         if not file_paths:
-            self.files_label.setText("No images selected")
-            self.size_label.setText("")
-            self.drop_area.reset()
+            self.summary_label.hide()
+            self.compress_button.setEnabled(False)
+            self.drop_workspace.set_text(
+                "Drop images here",
+                f"Drag & drop up to {MAX_BATCH_FILES} images, or click to browse",
+            )
             return
 
         plural = "image" if len(file_paths) == 1 else "images"
-        self.files_label.setText(f"{len(file_paths)} {plural} selected")
+        total_bytes = sum(os.path.getsize(path) for path in file_paths if os.path.exists(path))
+        self.summary_label.setText(f"{len(file_paths)} {plural} selected · {format_file_size(total_bytes)} total")
+        self.summary_label.show()
 
-        try:
-            total_bytes = sum(os.path.getsize(path) for path in file_paths)
-            self.size_label.setText(f"Total original size: {format_file_size(total_bytes)}")
-        except OSError:
-            self.size_label.setText("")
-
-        self.drop_area.setText(f"{len(file_paths)} {plural} ready")
+        self.compress_button.setEnabled(True)
+        self.drop_workspace.set_text(f"{len(file_paths)} {plural} ready", "Drop more images or click to add")
 
     def compress_and_save(self):
 
         if not self.input_paths:
-            QMessageBox.warning(self, "No Images", "Please select at least one image.")
             return
 
-        target_kb = self.target_kb_spin.value()
-        max_quality = self.quality_spin.value()
+        target_kb = self.target_slider.value()
+        max_quality = self.quality_slider.value()
+
+        self.compress_button.set_processing(True, "Compressing…")
+        self.processing_bar.show()
+        QApplication.processEvents()
 
         saved = 0
         failed = []
         last_output_folder = None
+        original_total_bytes = 0
+        achieved_total_bytes = 0
 
         for input_path in self.input_paths:
             try:
-                output_path, _achieved_kb, _quality_used, _width, _height = compress_to_target_size(
+                original_bytes = os.path.getsize(input_path)
+                original_total_bytes += original_bytes
+                output_path, achieved_kb, _quality_used, _width, _height = compress_to_target_size(
                     input_path,
                     target_kb,
                     max_quality,
                 )
+                achieved_bytes = achieved_kb * 1024
+                achieved_total_bytes += achieved_bytes
                 saved += 1
                 last_output_folder = os.path.dirname(output_path)
+
+                activity_store.record(
+                    "resize",
+                    os.path.basename(input_path),
+                    f"{format_file_size(original_bytes)} → {format_file_size(int(achieved_bytes))}",
+                )
 
             except Exception as error:
                 failed.append(f"{os.path.basename(input_path)}: {error}")
 
+        self.compress_button.set_processing(False)
+        self.processing_bar.hide()
+        self._last_output_folder = last_output_folder
+
         if saved:
             plural = "image" if saved == 1 else "images"
-            self.notify(f"Compressed {saved} {plural} — saved to {last_output_folder}")
+            self.success_panel.show_success(
+                "Compression complete",
+                f"{saved} {plural} compressed\n"
+                f"{format_file_size(original_total_bytes)} → {format_file_size(int(achieved_total_bytes))}",
+            )
 
         if failed:
-            QMessageBox.critical(
-                self,
-                "Some Images Failed",
-                "Could not compress:\n\n" + "\n".join(failed),
-            )
+            Modal.warn(self, "Some Images Failed", "Could not compress:\n\n" + "\n".join(failed))
+
+    def _open_output_folder(self):
+        if self._last_output_folder and os.path.isdir(self._last_output_folder):
+            os.startfile(self._last_output_folder)
+
+    def _reset(self):
+        self.input_paths = []
+        self.file_grid.set_files([])
+        self.refresh_summary()

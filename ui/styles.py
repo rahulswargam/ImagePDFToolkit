@@ -1,96 +1,122 @@
 LIGHT_COLORS = {
-    "window_bg": "#f7f8fa",
+    # Base surfaces
+    "bg": "#f7f8fa",
+    "content_bg": "#f7f8fa",
+    "surface": "#ffffff",
+    "surface_raised": "#f6f7f9",
+    "border": "#e8e9ed",
+    "border_strong": "#d7d9e0",
+    # Sidebar — always dark, regardless of app theme.
     "sidebar_bg": "#14161f",
     "sidebar_border": "#20222e",
-    "app_title": "#ffffff",
+    "sidebar_title": "#ffffff",
     "sidebar_subtitle": "#8b8fa3",
-    "section_label": "#6b6f85",
-    "sidebar_button_text": "#c4c7d4",
-    "sidebar_button_hover_bg": "rgba(255, 255, 255, 0.06)",
-    "sidebar_button_hover_text": "#ffffff",
-    "sidebar_active_bg": "rgba(220, 38, 38, 0.18)",
-    "sidebar_active_border": "#f87171",
-    "sidebar_active_text": "#ffffff",
+    "sidebar_section_label": "#6b6f85",
+    "sidebar_item_text": "#c4c7d4",
+    "sidebar_item_text_hover": "#ffffff",
+    "sidebar_item_hover_bg": "rgba(255, 255, 255, 0.06)",
+    "sidebar_item_active_bg": "rgba(255, 255, 255, 0.08)",
+    "sidebar_item_active_text": "#ffffff",
+    "sidebar_indicator": "#ef4444",
+    "sidebar_icon_muted": "#8b8fa3",
+    "sidebar_icon_active": "#ffffff",
+    "sidebar_footer_text": "#5b5f72",
+    "sidebar_footer_border": "#20222e",
+    # Text
+    "text_primary": "#14161f",
+    "text_secondary": "#565c6d",
+    "text_muted": "#8a8fa0",
+    "page_title": "#14161f",
+    # Icons (content area)
+    "icon_default": "#14161f",
+    "icon_muted": "#6b7280",
+    # Accent — reserved for primary actions, active states, progress, status.
     "accent": "#dc2626",
     "accent_hover": "#b91c1c",
     "accent_pressed": "#991b1b",
     "accent_soft": "#fef2f2",
-    "content_bg": "#f7f8fa",
-    "text_primary": "#14161f",
-    "text_secondary": "#565c6d",
-    "page_title": "#14161f",
-    "page_subtitle": "#565c6d",
-    "card_bg": "#ffffff",
-    "card_border": "#e5e7eb",
-    "card_border_hover": "#fca5a5",
+    "accent_on": "#ffffff",
+    # Status
+    "success": "#16a34a",
+    "warning": "#d97706",
+    "error": "#f97316",
+    # Inputs
     "input_bg": "#ffffff",
     "input_border": "#d8dae2",
     "input_text": "#14161f",
+    "input_placeholder": "#9aa0b4",
     "combo_popup_bg": "#ffffff",
-    "preview_bg": "#fafafc",
-    "preview_border": "#dfe1e8",
-    "drag_active_bg": "#fef2f2",
-    "drag_active_border": "#dc2626",
+    # Drop workspace
+    "workspace_bg": "#fafafc",
+    "workspace_border": "#dfe1e8",
+    "workspace_active_bg": "#fef2f2",
+    "workspace_active_border": "#dc2626",
+    # Scrollbar
     "scroll_track": "#f1f2f6",
     "scroll_handle": "#cfd2dc",
     "scroll_handle_hover": "#adb1c0",
+    # Toast
     "toast_bg": "#14161f",
     "toast_text": "#f7f8fa",
-    "success": "#16a34a",
-    "error": "#f97316",
-    "footer_text": "#5b5f72",
-    "footer_border": "#20222e",
 }
 
 DARK_COLORS = {
-    "window_bg": "#0a0b10",
+    "bg": "#0a0b10",
+    "content_bg": "#0e1017",
+    "surface": "#14161f",
+    "surface_raised": "#191c28",
+    "border": "#20222e",
+    "border_strong": "#33354a",
     "sidebar_bg": "#0a0b10",
     "sidebar_border": "#1b1d29",
-    "app_title": "#ffffff",
+    "sidebar_title": "#ffffff",
     "sidebar_subtitle": "#8b8fa3",
-    "section_label": "#5b5f72",
-    "sidebar_button_text": "#b7bacb",
-    "sidebar_button_hover_bg": "rgba(255, 255, 255, 0.05)",
-    "sidebar_button_hover_text": "#ffffff",
-    "sidebar_active_bg": "rgba(239, 68, 68, 0.22)",
-    "sidebar_active_border": "#f87171",
-    "sidebar_active_text": "#ffffff",
+    "sidebar_section_label": "#5b5f72",
+    "sidebar_item_text": "#b7bacb",
+    "sidebar_item_text_hover": "#ffffff",
+    "sidebar_item_hover_bg": "rgba(255, 255, 255, 0.05)",
+    "sidebar_item_active_bg": "rgba(255, 255, 255, 0.07)",
+    "sidebar_item_active_text": "#ffffff",
+    "sidebar_indicator": "#ef4444",
+    "sidebar_icon_muted": "#8b8fa3",
+    "sidebar_icon_active": "#ffffff",
+    "sidebar_footer_text": "#5b5f72",
+    "sidebar_footer_border": "#1b1d29",
+    "text_primary": "#e7e8ee",
+    "text_secondary": "#9397a8",
+    "text_muted": "#6b6f85",
+    "page_title": "#f5f6fa",
+    "icon_default": "#e7e8ee",
+    "icon_muted": "#9397a8",
     "accent": "#ef4444",
     "accent_hover": "#f87171",
     "accent_pressed": "#dc2626",
     "accent_soft": "#2a1212",
-    "content_bg": "#0e1017",
-    "text_primary": "#e7e8ee",
-    "text_secondary": "#9397a8",
-    "page_title": "#f5f6fa",
-    "page_subtitle": "#9397a8",
-    "card_bg": "#14161f",
-    "card_border": "#20222e",
-    "card_border_hover": "#991b1b",
+    "accent_on": "#ffffff",
+    "success": "#4ade80",
+    "warning": "#fbbf24",
+    "error": "#fb923c",
     "input_bg": "#0e1017",
     "input_border": "#262838",
     "input_text": "#e7e8ee",
+    "input_placeholder": "#5b5f72",
     "combo_popup_bg": "#14161f",
-    "preview_bg": "#0e1017",
-    "preview_border": "#20222e",
-    "drag_active_bg": "#2a1212",
-    "drag_active_border": "#ef4444",
+    "workspace_bg": "#0e1017",
+    "workspace_border": "#20222e",
+    "workspace_active_bg": "#2a1212",
+    "workspace_active_border": "#ef4444",
     "scroll_track": "#0e1017",
     "scroll_handle": "#262838",
     "scroll_handle_hover": "#33354a",
     "toast_bg": "#1b1d29",
     "toast_text": "#f5f6fa",
-    "success": "#4ade80",
-    "error": "#fb923c",
-    "footer_text": "#5b5f72",
-    "footer_border": "#1b1d29",
 }
 
 
 def build_style(colors):
     return f"""
 QMainWindow {{
-    background-color: {colors['window_bg']};
+    background-color: {colors['bg']};
 }}
 
 QWidget {{
@@ -110,8 +136,8 @@ QWidget {{
 
 #appTitle {{
     font-family: "Roboto Black";
-    color: {colors['app_title']};
-    font-size: 20px;
+    color: {colors['sidebar_title']};
+    font-size: 18px;
 }}
 
 #sidebarSubtitle {{
@@ -123,7 +149,7 @@ QWidget {{
 
 #sectionLabel {{
     font-family: "Roboto Medium";
-    color: {colors['section_label']};
+    color: {colors['sidebar_section_label']};
     font-size: 11px;
     letter-spacing: 1px;
     background-color: transparent;
@@ -132,30 +158,31 @@ QWidget {{
 QPushButton#sidebarButton {{
     font-family: "Roboto";
     background-color: transparent;
-    color: {colors['sidebar_button_text']};
+    color: {colors['sidebar_item_text']};
     border: none;
     border-left: 3px solid transparent;
     text-align: left;
-    padding: 11px 16px;
+    padding: 10px 14px;
     font-size: 13.5px;
+    border-radius: 0px;
 }}
 
 QPushButton#sidebarButton:hover {{
-    background-color: {colors['sidebar_button_hover_bg']};
-    color: {colors['sidebar_button_hover_text']};
+    background-color: {colors['sidebar_item_hover_bg']};
+    color: {colors['sidebar_item_text_hover']};
 }}
 
 QPushButton#sidebarButton:checked {{
-    background-color: {colors['sidebar_active_bg']};
-    border-left: 3px solid {colors['sidebar_active_border']};
-    color: {colors['sidebar_active_text']};
+    background-color: {colors['sidebar_item_active_bg']};
+    border-left: 3px solid {colors['sidebar_indicator']};
+    color: {colors['sidebar_item_active_text']};
     font-family: "Roboto Medium";
 }}
 
 QPushButton#themeToggle {{
     font-family: "Roboto";
     background-color: transparent;
-    color: {colors['sidebar_button_text']};
+    color: {colors['sidebar_item_text']};
     border: 1px solid {colors['sidebar_border']};
     border-radius: 8px;
     padding: 9px 14px;
@@ -164,15 +191,15 @@ QPushButton#themeToggle {{
 }}
 
 QPushButton#themeToggle:hover {{
-    background-color: {colors['sidebar_button_hover_bg']};
+    background-color: {colors['sidebar_item_hover_bg']};
     color: #ffffff;
 }}
 
 #sidebarFooter {{
-    color: {colors['footer_text']};
+    color: {colors['sidebar_footer_text']};
     font-size: 11px;
     background-color: transparent;
-    border-top: 1px solid {colors['footer_border']};
+    border-top: 1px solid {colors['sidebar_footer_border']};
     padding-top: 12px;
 }}
 
@@ -184,35 +211,46 @@ QPushButton#themeToggle:hover {{
     background-color: {colors['content_bg']};
 }}
 
-#breadcrumb {{
-    font-family: "Roboto Medium";
-    color: {colors['text_secondary']};
-    font-size: 12.5px;
-    background-color: transparent;
-}}
-
 #pageTitle {{
     font-family: "Roboto Black";
     color: {colors['page_title']};
-    font-size: 30px;
+    font-size: 28px;
+    background-color: transparent;
+}}
+
+#sectionHeading {{
+    font-family: "Roboto SemiBold";
+    color: {colors['text_primary']};
+    font-size: 18px;
     background-color: transparent;
 }}
 
 #heroBadge {{
+    background-color: {colors['accent_soft']};
+    border: 1px solid {colors['border']};
+    border-radius: 999px;
+}}
+
+#heroBadgeText {{
     font-family: "Roboto SemiBold";
     color: {colors['accent']};
-    background-color: {colors['accent_soft']};
-    border: 1px solid {colors['card_border_hover']};
-    border-radius: 12px;
+    background-color: transparent;
+    border: none;
     font-size: 11px;
     letter-spacing: 1.5px;
-    padding: 6px 14px;
 }}
 
 #pageSubtitle {{
     font-family: "Roboto";
-    color: {colors['page_subtitle']};
+    color: {colors['text_secondary']};
     font-size: 13.5px;
+    background-color: transparent;
+}}
+
+#metaLabel {{
+    font-family: "Roboto Medium";
+    color: {colors['text_muted']};
+    font-size: 12px;
     background-color: transparent;
 }}
 
@@ -231,17 +269,18 @@ QPushButton#backButton:hover {{
 }}
 
 /* =========================
-   CARDS
+   CARDS / SURFACES
    ========================= */
 
 QFrame#toolCard {{
-    background-color: {colors['card_bg']};
-    border: 1px solid {colors['card_border']};
-    border-radius: 18px;
+    background-color: {colors['surface']};
+    border: 1px solid {colors['border']};
+    border-radius: 16px;
 }}
 
 QFrame#toolCard:hover {{
-    border: 1.5px solid {colors['card_border_hover']};
+    border: 1px solid {colors['border_strong']};
+    background-color: {colors['surface_raised']};
 }}
 
 QLabel#toolTitle {{
@@ -272,7 +311,7 @@ QLabel#fieldLabel {{
 QPushButton#toolButton {{
     font-family: "Roboto SemiBold";
     background-color: {colors['accent']};
-    color: #ffffff;
+    color: {colors['accent_on']};
     border: none;
     border-radius: 12px;
     padding: 10px 16px;
@@ -287,11 +326,16 @@ QPushButton#toolButton:pressed {{
     background-color: {colors['accent_pressed']};
 }}
 
+QPushButton#toolButton:disabled {{
+    background-color: {colors['border_strong']};
+    color: {colors['text_muted']};
+}}
+
 QPushButton#secondaryButton {{
     font-family: "Roboto SemiBold";
     background-color: transparent;
-    color: {colors['accent']};
-    border: 1px solid {colors['card_border']};
+    color: {colors['text_primary']};
+    border: 1px solid {colors['border_strong']};
     border-radius: 12px;
     padding: 9px 16px;
     font-size: 13.5px;
@@ -299,7 +343,18 @@ QPushButton#secondaryButton {{
 
 QPushButton#secondaryButton:hover {{
     border: 1px solid {colors['accent']};
-    background-color: {colors['accent_soft']};
+    color: {colors['accent']};
+}}
+
+QPushButton#iconButton {{
+    background-color: transparent;
+    border: none;
+    border-radius: 8px;
+    padding: 6px;
+}}
+
+QPushButton#iconButton:hover {{
+    background-color: {colors['surface_raised']};
 }}
 
 /* =========================
@@ -334,6 +389,198 @@ QComboBox QAbstractItemView {{
     outline: none;
 }}
 
+QSlider::groove:horizontal {{
+    background: {colors['border_strong']};
+    height: 4px;
+    border-radius: 2px;
+}}
+
+QSlider::sub-page:horizontal {{
+    background: {colors['accent']};
+    height: 4px;
+    border-radius: 2px;
+}}
+
+QSlider::handle:horizontal {{
+    background: {colors['accent']};
+    border: 2px solid {colors['surface']};
+    width: 16px;
+    height: 16px;
+    margin: -7px 0;
+    border-radius: 9px;
+}}
+
+QSlider::handle:horizontal:hover {{
+    background: {colors['accent_hover']};
+}}
+
+QProgressBar {{
+    background-color: {colors['border']};
+    border: none;
+    border-radius: 3px;
+    max-height: 6px;
+}}
+
+QProgressBar::chunk {{
+    background-color: {colors['accent']};
+    border-radius: 3px;
+}}
+
+QCheckBox {{
+    font-family: "Roboto";
+    color: {colors['text_primary']};
+    spacing: 8px;
+    background-color: transparent;
+}}
+
+QCheckBox::indicator {{
+    width: 18px;
+    height: 18px;
+}}
+
+QLabel {{
+    background-color: transparent;
+    color: {colors['text_primary']};
+}}
+
+/* =========================
+   DROP WORKSPACE
+   ========================= */
+
+#previewFrame {{
+    background-color: {colors['workspace_bg']};
+    border: 1.5px dashed {colors['workspace_border']};
+    border-radius: 16px;
+    color: {colors['text_secondary']};
+    font-size: 13px;
+    padding: 10px;
+}}
+
+#previewFrame[dragActive="true"] {{
+    background-color: {colors['workspace_active_bg']};
+    border: 1.5px dashed {colors['workspace_active_border']};
+    color: {colors['accent']};
+}}
+
+#dropWorkspace {{
+    background-color: {colors['workspace_bg']};
+    border: 1.5px dashed {colors['workspace_border']};
+    border-radius: 20px;
+}}
+
+#dropWorkspace[dragActive="true"] {{
+    background-color: {colors['workspace_active_bg']};
+    border: 1.5px dashed {colors['workspace_active_border']};
+}}
+
+#dropWorkspaceTitle {{
+    font-family: "Roboto SemiBold";
+    color: {colors['text_primary']};
+    font-size: 16px;
+    background-color: transparent;
+}}
+
+#dropWorkspaceSubtitle {{
+    font-family: "Roboto";
+    color: {colors['text_secondary']};
+    font-size: 13px;
+    background-color: transparent;
+}}
+
+#dropWorkspaceHint {{
+    font-family: "Roboto Medium";
+    color: {colors['text_muted']};
+    font-size: 11px;
+    letter-spacing: 1px;
+    background-color: transparent;
+}}
+
+/* =========================
+   FILE ROWS / GRID ITEMS
+   ========================= */
+
+QFrame#fileRow {{
+    background-color: {colors['surface']};
+    border: 1px solid {colors['border']};
+    border-radius: 12px;
+}}
+
+QFrame#fileRow:hover {{
+    border: 1px solid {colors['border_strong']};
+    background-color: {colors['surface_raised']};
+}}
+
+QLabel#fileRowIcon {{
+    background-color: {colors['accent_soft']};
+    color: {colors['accent']};
+    border-radius: 9px;
+    font-size: 15px;
+}}
+
+QLabel#fileRowName {{
+    font-family: "Roboto Medium";
+    color: {colors['text_primary']};
+    background-color: transparent;
+    font-size: 13px;
+}}
+
+QLabel#fileRowMeta {{
+    font-family: "Roboto Medium";
+    color: {colors['text_muted']};
+    background-color: transparent;
+    font-size: 10.5px;
+    letter-spacing: 0.5px;
+}}
+
+QPushButton#fileRowRemove {{
+    font-family: "Roboto";
+    background-color: transparent;
+    color: {colors['text_secondary']};
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+}}
+
+QPushButton#fileRowRemove:hover {{
+    background-color: {colors['accent_soft']};
+    color: {colors['accent']};
+}}
+
+QFrame#fileGridItem {{
+    background-color: {colors['surface']};
+    border: 1px solid {colors['border']};
+    border-radius: 14px;
+}}
+
+QFrame#fileGridItem:hover {{
+    border: 1px solid {colors['border_strong']};
+    background-color: {colors['surface_raised']};
+}}
+
+#fileGridThumb {{
+    background-color: {colors['workspace_bg']};
+    border-radius: 10px;
+}}
+
+#fileGridName {{
+    font-family: "Roboto Medium";
+    color: {colors['text_primary']};
+    background-color: transparent;
+    font-size: 12.5px;
+}}
+
+#fileGridMeta {{
+    font-family: "Roboto Medium";
+    color: {colors['text_muted']};
+    background-color: transparent;
+    font-size: 10.5px;
+    letter-spacing: 0.3px;
+}}
+
+/* =========================
+   PASSWORD FIELD
+   ========================= */
+
 QPushButton#revealButton {{
     font-family: "Roboto Medium";
     background-color: {colors['input_bg']};
@@ -356,90 +603,157 @@ QPushButton#revealButton:pressed {{
     color: {colors['accent']};
 }}
 
-QCheckBox {{
-    font-family: "Roboto";
-    color: {colors['text_primary']};
-    spacing: 8px;
-    background-color: transparent;
+#strengthSegment {{
+    border-radius: 2px;
+    background-color: {colors['border_strong']};
+    max-height: 4px;
+    min-height: 4px;
 }}
 
-QCheckBox::indicator {{
-    width: 18px;
-    height: 18px;
+#strengthSegment[level="weak"] {{
+    background-color: {colors['error']};
 }}
 
-QLabel {{
+#strengthSegment[level="medium"] {{
+    background-color: {colors['warning']};
+}}
+
+#strengthSegment[level="strong"] {{
+    background-color: {colors['success']};
+}}
+
+#strengthLabel {{
+    font-family: "Roboto Medium";
+    font-size: 11px;
     background-color: transparent;
-    color: {colors['text_primary']};
+    color: {colors['text_muted']};
 }}
 
 /* =========================
-   PREVIEW / DROP AREA
+   SUCCESS / EMPTY / MODAL
    ========================= */
 
-#previewFrame {{
-    background-color: {colors['preview_bg']};
-    border: 1.5px dashed {colors['preview_border']};
+#successPanel {{
+    background-color: {colors['accent_soft']};
+    border: 1px solid {colors['border']};
     border-radius: 16px;
+}}
+
+#successIcon {{
+    background-color: {colors['success']};
+    border-radius: 999px;
+}}
+
+#panelTitle {{
+    font-family: "Roboto SemiBold";
+    color: {colors['text_primary']};
+    font-size: 15px;
+    background-color: transparent;
+}}
+
+#panelDetail {{
+    font-family: "Roboto";
     color: {colors['text_secondary']};
     font-size: 13px;
-    padding: 10px;
+    background-color: transparent;
 }}
 
-#previewFrame[dragActive="true"] {{
-    background-color: {colors['drag_active_bg']};
-    border: 1.5px dashed {colors['drag_active_border']};
-    color: {colors['accent']};
+#emptyStateTitle {{
+    font-family: "Roboto SemiBold";
+    color: {colors['text_secondary']};
+    font-size: 14px;
+    background-color: transparent;
+}}
+
+#emptyStateSubtitle {{
+    font-family: "Roboto";
+    color: {colors['text_muted']};
+    font-size: 12.5px;
+    background-color: transparent;
+}}
+
+#modalCard {{
+    background-color: {colors['surface']};
+    border: 1px solid {colors['border']};
+    border-radius: 18px;
 }}
 
 /* =========================
-   FILE ROW (batch file lists)
+   QUICK ACTIONS / ACTIVITY / SEGMENTED CONTROL
    ========================= */
 
-QFrame#fileRow {{
-    background-color: {colors['preview_bg']};
-    border: 1px solid {colors['preview_border']};
+QFrame#quickActionRow {{
+    background-color: {colors['surface']};
+    border: 1px solid {colors['border']};
     border-radius: 12px;
 }}
 
-QFrame#fileRow:hover {{
-    border: 1px solid {colors['card_border_hover']};
+QFrame#quickActionRow:hover {{
+    border: 1px solid {colors['border_strong']};
+    background-color: {colors['surface_raised']};
 }}
 
-QLabel#fileRowIcon {{
-    background-color: {colors['accent_soft']};
-    color: {colors['accent']};
-    border-radius: 9px;
-    font-size: 15px;
+#quickActionTitle {{
+    font-family: "Roboto SemiBold";
+    color: {colors['text_primary']};
+    font-size: 13.5px;
+    background-color: transparent;
 }}
 
-QLabel#fileRowName {{
+#quickActionSubtitle {{
+    font-family: "Roboto";
+    color: {colors['text_muted']};
+    font-size: 11.5px;
+    background-color: transparent;
+}}
+
+QFrame#activityRow {{
+    background-color: transparent;
+    border: none;
+    border-bottom: 1px solid {colors['border']};
+}}
+
+#activityName {{
     font-family: "Roboto Medium";
     color: {colors['text_primary']};
-    background-color: transparent;
     font-size: 13px;
-}}
-
-QLabel#fileRowMeta {{
-    font-family: "Roboto Medium";
-    color: {colors['text_secondary']};
     background-color: transparent;
-    font-size: 10.5px;
-    letter-spacing: 0.5px;
 }}
 
-QPushButton#fileRowRemove {{
+#activityDetail {{
     font-family: "Roboto";
+    color: {colors['text_secondary']};
+    font-size: 12px;
+    background-color: transparent;
+}}
+
+#activityTime {{
+    font-family: "Roboto Medium";
+    color: {colors['text_muted']};
+    font-size: 11px;
+    background-color: transparent;
+}}
+
+QPushButton#segmentOption {{
+    font-family: "Roboto Medium";
     background-color: transparent;
     color: {colors['text_secondary']};
     border: none;
-    border-radius: 8px;
-    font-size: 14px;
+    border-radius: 9px;
+    padding: 8px 14px;
+    font-size: 13px;
 }}
 
-QPushButton#fileRowRemove:hover {{
-    background-color: {colors['accent_soft']};
-    color: {colors['accent']};
+QPushButton#segmentOption:checked {{
+    background-color: {colors['surface']};
+    color: {colors['text_primary']};
+    font-family: "Roboto SemiBold";
+}}
+
+#segmentTrack {{
+    background-color: {colors['workspace_bg']};
+    border: 1px solid {colors['border']};
+    border-radius: 11px;
 }}
 
 /* =========================
@@ -547,6 +861,15 @@ QScrollBar::sub-line:horizontal {{
 QScrollBar::add-page:horizontal,
 QScrollBar::sub-page:horizontal {{
     background: none;
+}}
+
+QToolTip {{
+    background-color: {colors['toast_bg']};
+    color: {colors['toast_text']};
+    border: 1px solid {colors['border_strong']};
+    border-radius: 6px;
+    padding: 4px 8px;
+    font-size: 12px;
 }}
 """
 

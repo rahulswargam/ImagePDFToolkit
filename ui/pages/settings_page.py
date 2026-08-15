@@ -1,21 +1,14 @@
-import os
 from pathlib import Path
 
-from PySide6.QtWidgets import (
-    QComboBox,
-    QFileDialog,
-    QFrame,
-    QHBoxLayout,
-    QLabel,
-    QVBoxLayout,
-    QWidget,
-)
+from PySide6.QtWidgets import QFileDialog, QFrame, QHBoxLayout, QLabel, QVBoxLayout, QWidget
 
 import settings_store
-from ui.widgets import AnimatedButton
+from ui.components.buttons import AnimatedButton
+from ui.components.inputs import SegmentedControl, SliderInput
+from version import APP_VERSION
 
 THEME_OPTIONS = [
-    ("System Default", settings_store.THEME_SYSTEM),
+    ("System", settings_store.THEME_SYSTEM),
     ("Light", settings_store.THEME_LIGHT),
     ("Dark", settings_store.THEME_DARK),
 ]
@@ -37,76 +30,95 @@ class SettingsPage(QWidget):
 
         main_layout = QVBoxLayout(self)
         main_layout.setContentsMargins(0, 15, 0, 0)
-        main_layout.setSpacing(15)
+        main_layout.setSpacing(16)
 
-        # =========================
-        # APPEARANCE
-        # =========================
+        main_layout.addWidget(self._build_appearance_card())
+        main_layout.addWidget(self._build_files_card())
+        main_layout.addWidget(self._build_processing_card())
+        main_layout.addWidget(self._build_about_card())
+        main_layout.addStretch()
 
-        appearance_card = QFrame()
-        appearance_card.setObjectName("toolCard")
+    # =========================
+    # APPEARANCE
+    # =========================
 
-        appearance_layout = QVBoxLayout(appearance_card)
-        appearance_layout.setContentsMargins(20, 18, 20, 18)
-        appearance_layout.setSpacing(12)
+    def _build_appearance_card(self):
 
-        appearance_title = QLabel("Appearance")
-        appearance_title.setObjectName("toolTitle")
-        appearance_layout.addWidget(appearance_title)
+        card = QFrame()
+        card.setObjectName("toolCard")
 
-        appearance_description = QLabel(
-            "Choose how Image & PDF Toolkit looks. \"System Default\" follows "
-            "your Windows light/dark setting automatically."
+        layout = QVBoxLayout(card)
+        layout.setContentsMargins(20, 18, 20, 18)
+        layout.setSpacing(12)
+
+        title = QLabel("Appearance")
+        title.setObjectName("toolTitle")
+        layout.addWidget(title)
+
+        description = QLabel(
+            "Choose how Image & PDF Toolkit looks. \"System\" follows your "
+            "Windows light/dark setting automatically."
         )
-        appearance_description.setObjectName("toolDescription")
-        appearance_description.setWordWrap(True)
-        appearance_layout.addWidget(appearance_description)
+        description.setObjectName("toolDescription")
+        description.setWordWrap(True)
+        layout.addWidget(description)
 
         theme_label = QLabel("Theme")
         theme_label.setObjectName("fieldLabel")
-        appearance_layout.addWidget(theme_label)
-
-        self.theme_combo = QComboBox()
-        self.theme_combo.setMinimumHeight(40)
-        for label, _value in THEME_OPTIONS:
-            self.theme_combo.addItem(label)
+        layout.addWidget(theme_label)
 
         current_mode = settings_store.get_theme_mode()
-        for index, (_label, value) in enumerate(THEME_OPTIONS):
-            if value == current_mode:
-                self.theme_combo.setCurrentIndex(index)
-                break
+        current_index = next(
+            (i for i, (_label, value) in enumerate(THEME_OPTIONS) if value == current_mode), 0
+        )
 
-        self.theme_combo.currentIndexChanged.connect(self.change_theme)
-        appearance_layout.addWidget(self.theme_combo)
+        self.theme_control = SegmentedControl(
+            [label for label, _value in THEME_OPTIONS], current_index=current_index
+        )
+        self.theme_control.currentChanged.connect(self.change_theme)
 
-        main_layout.addWidget(appearance_card)
+        control_row = QHBoxLayout()
+        control_row.addWidget(self.theme_control)
+        control_row.addStretch()
+        layout.addLayout(control_row)
 
-        # =========================
-        # DEFAULT SAVE LOCATION
-        # =========================
+        return card
 
-        folder_card = QFrame()
-        folder_card.setObjectName("toolCard")
+    def change_theme(self, index):
 
-        folder_layout = QVBoxLayout(folder_card)
-        folder_layout.setContentsMargins(20, 18, 20, 18)
-        folder_layout.setSpacing(12)
+        _label, value = THEME_OPTIONS[index]
+        settings_store.set_theme_mode(value)
 
-        folder_title = QLabel("Default Save Location")
-        folder_title.setObjectName("toolTitle")
-        folder_layout.addWidget(folder_title)
+        if self.on_theme_changed:
+            self.on_theme_changed()
 
-        folder_description = QLabel("Converted and processed files are saved here.")
-        folder_description.setObjectName("toolDescription")
-        folder_description.setWordWrap(True)
-        folder_layout.addWidget(folder_description)
+    # =========================
+    # FILES
+    # =========================
+
+    def _build_files_card(self):
+
+        card = QFrame()
+        card.setObjectName("toolCard")
+
+        layout = QVBoxLayout(card)
+        layout.setContentsMargins(20, 18, 20, 18)
+        layout.setSpacing(12)
+
+        title = QLabel("Files")
+        title.setObjectName("toolTitle")
+        layout.addWidget(title)
+
+        description = QLabel("Converted and processed files are saved here.")
+        description.setObjectName("toolDescription")
+        description.setWordWrap(True)
+        layout.addWidget(description)
 
         self.folder_label = QLabel()
         self.folder_label.setObjectName("toolDescription")
         self.folder_label.setWordWrap(True)
         self.refresh_folder_label()
-        folder_layout.addWidget(self.folder_label)
+        layout.addWidget(self.folder_label)
 
         buttons_row = QHBoxLayout()
         buttons_row.setSpacing(10)
@@ -120,28 +132,16 @@ class SettingsPage(QWidget):
         reset_button.setObjectName("secondaryButton")
         reset_button.clicked.connect(self.reset_folder)
         buttons_row.addWidget(reset_button)
+        buttons_row.addStretch()
 
-        folder_layout.addLayout(buttons_row)
+        layout.addLayout(buttons_row)
 
-        main_layout.addWidget(folder_card)
-        main_layout.addStretch()
+        return card
 
     def refresh_folder_label(self):
 
         custom_folder = settings_store.get_output_folder()
-
-        if custom_folder:
-            self.folder_label.setText(custom_folder)
-        else:
-            self.folder_label.setText(DEFAULT_FOLDER_LABEL)
-
-    def change_theme(self, index):
-
-        _label, value = THEME_OPTIONS[index]
-        settings_store.set_theme_mode(value)
-
-        if self.on_theme_changed:
-            self.on_theme_changed()
+        self.folder_label.setText(custom_folder if custom_folder else DEFAULT_FOLDER_LABEL)
 
     def change_folder(self):
 
@@ -161,3 +161,86 @@ class SettingsPage(QWidget):
         settings_store.reset_output_folder()
         self.refresh_folder_label()
         self.notify("Save location reset to the default folder")
+
+    # =========================
+    # PROCESSING
+    # =========================
+
+    def _build_processing_card(self):
+
+        card = QFrame()
+        card.setObjectName("toolCard")
+
+        layout = QVBoxLayout(card)
+        layout.setContentsMargins(20, 18, 20, 18)
+        layout.setSpacing(16)
+
+        title = QLabel("Processing")
+        title.setObjectName("toolTitle")
+        layout.addWidget(title)
+
+        description = QLabel(
+            "Starting values for Image Resizer — you can always adjust them "
+            "per-image before compressing."
+        )
+        description.setObjectName("toolDescription")
+        description.setWordWrap(True)
+        layout.addWidget(description)
+
+        options_row = QHBoxLayout()
+        options_row.setSpacing(28)
+
+        self.default_target_slider = SliderInput(
+            "Default Target Size", 5, 5000, settings_store.get_default_target_kb(), suffix=" KB"
+        )
+        self.default_target_slider.valueChanged.connect(settings_store.set_default_target_kb)
+
+        self.default_quality_slider = SliderInput(
+            "Default Maximum Quality", 5, 100, settings_store.get_default_quality(), suffix="%"
+        )
+        self.default_quality_slider.valueChanged.connect(settings_store.set_default_quality)
+
+        options_row.addWidget(self.default_target_slider)
+        options_row.addWidget(self.default_quality_slider)
+        layout.addLayout(options_row)
+
+        return card
+
+    # =========================
+    # ABOUT
+    # =========================
+
+    def _build_about_card(self):
+
+        card = QFrame()
+        card.setObjectName("toolCard")
+
+        layout = QVBoxLayout(card)
+        layout.setContentsMargins(20, 18, 20, 18)
+        layout.setSpacing(6)
+
+        title = QLabel("About")
+        title.setObjectName("toolTitle")
+        layout.addWidget(title)
+
+        layout.addSpacing(4)
+
+        rows = [
+            ("Application", "Image & PDF Toolkit"),
+            ("Version", f"v{APP_VERSION}"),
+            ("License", "MIT License"),
+            ("Created by", "Rahul Swargam"),
+        ]
+
+        for label_text, value_text in rows:
+            row = QHBoxLayout()
+            label = QLabel(label_text)
+            label.setObjectName("fieldLabel")
+            value = QLabel(value_text)
+            value.setObjectName("toolDescription")
+            row.addWidget(label)
+            row.addStretch()
+            row.addWidget(value)
+            layout.addLayout(row)
+
+        return card

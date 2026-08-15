@@ -1,4 +1,5 @@
 import os
+import sys
 
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QGuiApplication, QIcon
@@ -6,16 +7,18 @@ from PySide6.QtWidgets import (
     QApplication,
     QButtonGroup,
     QFrame,
-    QGridLayout,
     QHBoxLayout,
     QLabel,
     QMainWindow,
-    QPushButton,
     QVBoxLayout,
     QWidget,
 )
 
 import settings_store
+from ui.components.nav import NavBreadcrumb, NavItem
+from ui.components.scroll import SmoothScrollArea
+from ui.components.feedback import Toast
+from ui.pages.home_page import IMAGE_EXTENSIONS, HomePage
 from ui.pages.image_resizer_page import ImageResizerPage
 from ui.pages.jpg_to_pdf_page import JpgToPdfPage
 from ui.pages.lock_pdf_page import LockPdfPage
@@ -24,34 +27,48 @@ from ui.pages.png_to_jpg_page import PngToJpgPage
 from ui.pages.settings_page import SettingsPage
 from ui.pages.unlock_pdf_page import UnlockPdfPage
 from ui.styles import DARK_STYLE, LIGHT_STYLE
-from ui.widgets import SmoothScrollArea, Toast, ToolCard
 from version import APP_VERSION
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ICON_PATH = os.path.join(BASE_DIR, "assets", "icons", "app.ico")
-TOOL_ICON_DIR = os.path.join(BASE_DIR, "assets", "icons", "tools")
 
-RESIZE_ICON = os.path.join(TOOL_ICON_DIR, "resize.png")
-IMAGE_ICON = os.path.join(TOOL_ICON_DIR, "image.png")
-DOCUMENT_ICON = os.path.join(TOOL_ICON_DIR, "document.png")
-LOCK_ICON = os.path.join(TOOL_ICON_DIR, "lock.png")
-UNLOCK_ICON = os.path.join(TOOL_ICON_DIR, "unlock.png")
-
+# (svg icon name, title, description, page class)
 IMAGE_TOOLS = [
-    (RESIZE_ICON, "Image Resizer", "Compress images down to a target file size.", ImageResizerPage),
-    (IMAGE_ICON, "PNG → JPG", "Convert PNG images into JPG format.", PngToJpgPage),
-    (DOCUMENT_ICON, "JPG → PDF", "Convert one or multiple JPG images into a PDF.", JpgToPdfPage),
+    ("resize", "Image Resizer", "Compress images down to a target file size.", ImageResizerPage),
+    ("repeat", "PNG → JPG", "Convert PNG images into JPG format.", PngToJpgPage),
+    ("layers", "JPG → PDF", "Convert one or multiple JPG images into a PDF.", JpgToPdfPage),
 ]
 
 PDF_TOOLS = [
-    (IMAGE_ICON, "PDF → JPG", "Convert PDF pages into high-quality JPG images.", PdfToJpgPage),
-    (LOCK_ICON, "Lock PDF", "Protect your PDF document with a password.", LockPdfPage),
-    (UNLOCK_ICON, "Unlock PDF", "Remove password protection from a PDF.", UnlockPdfPage),
+    ("image", "PDF → JPG", "Convert PDF pages into high-quality JPG images.", PdfToJpgPage),
+    ("lock", "Lock PDF", "Protect your PDF document with a password.", LockPdfPage),
+    ("unlock", "Unlock PDF", "Remove password protection from a PDF.", UnlockPdfPage),
 ]
 
 ALL_TOOLS = IMAGE_TOOLS + PDF_TOOLS
 
 COPYRIGHT_TEXT = "© 2026 Rahul Swargam\nMIT License"
+
+
+def _apply_dark_title_bar(hwnd, dark):
+    """Best-effort: tints the native Windows title bar to match dark mode."""
+
+    if sys.platform != "win32":
+        return
+
+    try:
+        import ctypes
+
+        DWMWA_USE_IMMERSIVE_DARK_MODE = 20
+        value = ctypes.c_int(1 if dark else 0)
+        ctypes.windll.dwmapi.DwmSetWindowAttribute(
+            ctypes.c_void_p(int(hwnd)),
+            DWMWA_USE_IMMERSIVE_DARK_MODE,
+            ctypes.byref(value),
+            ctypes.sizeof(value),
+        )
+    except Exception:
+        pass
 
 
 class MainWindow(QMainWindow):
@@ -101,10 +118,10 @@ class MainWindow(QMainWindow):
 
         sidebar = QFrame()
         sidebar.setObjectName("sidebar")
-        sidebar.setFixedWidth(280)
+        sidebar.setFixedWidth(272)
 
         sidebar_layout = QVBoxLayout(sidebar)
-        sidebar_layout.setContentsMargins(24, 26, 24, 20)
+        sidebar_layout.setContentsMargins(20, 24, 20, 20)
         sidebar_layout.setSpacing(2)
 
         title = QLabel("Image & PDF")
@@ -115,35 +132,34 @@ class MainWindow(QMainWindow):
 
         sidebar_layout.addWidget(title)
         sidebar_layout.addWidget(subtitle)
-        sidebar_layout.addSpacing(28)
+        sidebar_layout.addSpacing(26)
 
-        self.home_button = self.create_sidebar_button("⌂   Home", checked=True)
+        self.home_button = self._build_nav_item("home", "Home", checked=True)
         self.home_button.clicked.connect(self.show_home)
         sidebar_layout.addWidget(self.home_button)
 
         sidebar_layout.addWidget(self._section_label("IMAGE"))
 
-        for icon, title_text, description, page_class in IMAGE_TOOLS:
+        for icon_name, title_text, description, page_class in IMAGE_TOOLS:
             sidebar_layout.addWidget(
-                self._build_nav_button(title_text, description, page_class)
+                self._build_tool_nav_item(icon_name, title_text, description, page_class)
             )
 
         sidebar_layout.addWidget(self._section_label("PDF"))
 
-        for icon, title_text, description, page_class in PDF_TOOLS:
+        for icon_name, title_text, description, page_class in PDF_TOOLS:
             sidebar_layout.addWidget(
-                self._build_nav_button(title_text, description, page_class)
+                self._build_tool_nav_item(icon_name, title_text, description, page_class)
             )
 
         sidebar_layout.addStretch()
 
-        self.settings_button = QPushButton("⚙   Settings")
-        self.settings_button.setObjectName("themeToggle")
-        self.settings_button.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.settings_button = self._build_nav_item("settings", "Settings")
         self.settings_button.clicked.connect(self.open_settings_page)
+        self.nav_buttons["Settings"] = self.settings_button
         sidebar_layout.addWidget(self.settings_button)
 
-        sidebar_layout.addSpacing(18)
+        sidebar_layout.addSpacing(14)
 
         footer = QLabel(f"{COPYRIGHT_TEXT}\nv{APP_VERSION}")
         footer.setObjectName("sidebarFooter")
@@ -174,22 +190,19 @@ class MainWindow(QMainWindow):
         label.setContentsMargins(5, 18, 5, 4)
         return label
 
-    def _build_nav_button(self, title_text, description, page_class):
-        button = self.create_sidebar_button(f"▪   {title_text}")
-        button.clicked.connect(
+    def _build_nav_item(self, icon_name, text, checked=False):
+        item = NavItem(icon_name, text)
+        item.setChecked(checked)
+        self.nav_group.addButton(item)
+        return item
+
+    def _build_tool_nav_item(self, icon_name, title_text, description, page_class):
+        item = self._build_nav_item(icon_name, title_text)
+        item.clicked.connect(
             lambda checked=False, p=page_class, t=title_text, d=description: self.open_tool(p, t, d)
         )
-        self.nav_buttons[title_text] = button
-        return button
-
-    def create_sidebar_button(self, text, checked=False):
-        button = QPushButton(text)
-        button.setObjectName("sidebarButton")
-        button.setCheckable(True)
-        button.setChecked(checked)
-        button.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.nav_group.addButton(button)
-        return button
+        self.nav_buttons[title_text] = item
+        return item
 
     def notify(self, message, kind="success"):
         self.toast.show_message(message, kind)
@@ -207,56 +220,57 @@ class MainWindow(QMainWindow):
         self.clear_content()
         self.home_button.setChecked(True)
 
-        badge_container = QWidget()
-        badge_row = QHBoxLayout(badge_container)
-        badge_row.setContentsMargins(0, 0, 0, 0)
-        badge = QLabel("⚡  FAST · PRIVATE · OFFLINE")
-        badge.setObjectName("heroBadge")
-        badge_row.addWidget(badge)
-        badge_row.addStretch()
-        self.content_layout.addWidget(badge_container)
-        self.content_layout.addSpacing(14)
-
-        page_title = QLabel("Image & PDF Toolkit")
-        page_title.setObjectName("pageTitle")
-
-        page_subtitle = QLabel("Simple, fast and offline tools for your images and PDF files.")
-        page_subtitle.setObjectName("pageSubtitle")
-
-        self.content_layout.addWidget(page_title)
-        self.content_layout.addWidget(page_subtitle)
-        self.content_layout.addSpacing(24)
-
         scroll_area = SmoothScrollArea()
         scroll_area.setWidgetResizable(True)
         scroll_area.setFrameShape(QFrame.Shape.NoFrame)
         scroll_area.viewport().setObjectName("scrollViewport")
 
-        cards_container = QWidget()
-        cards_container.setObjectName("scrollViewport")
-        grid = QGridLayout(cards_container)
-        grid.setSpacing(18)
+        page = HomePage(self.notify, self.open_tool, self.open_dropped_files, ALL_TOOLS)
+        page.setObjectName("scrollViewport")
+        scroll_area.setWidget(page)
 
-        for index, (icon, title_text, description, page_class) in enumerate(ALL_TOOLS):
-            row = index // 2
-            column = index % 2
-
-            card = ToolCard(
-                icon,
-                title_text,
-                description,
-                lambda checked=False, p=page_class, t=title_text, d=description: self.open_tool(p, t, d),
-            )
-            grid.addWidget(card, row, column)
-
-        grid.setColumnStretch(0, 1)
-        grid.setColumnStretch(1, 1)
-
-        scroll_area.setWidget(cards_container)
         self.content_layout.addWidget(scroll_area)
 
-    def open_tool(self, page_class, title_text, description):
-        self._open_page(title_text, description, lambda: page_class(self.notify))
+    def open_dropped_files(self, paths):
+        if not paths:
+            return
+
+        extension = os.path.splitext(paths[0])[1].lower()
+
+        if extension in IMAGE_EXTENSIONS:
+            self.open_tool(
+                ImageResizerPage,
+                "Image Resizer",
+                "Compress images down to a target file size.",
+                initial_paths=paths,
+            )
+        else:
+            self.open_tool(
+                PdfToJpgPage,
+                "PDF → JPG",
+                "Convert PDF pages into high-quality JPG images.",
+                initial_paths=paths,
+            )
+
+    def open_tool(self, page_class, title_text, description, initial_paths=None):
+        def factory():
+            page = page_class(self.notify)
+            if initial_paths:
+                self._seed_page(page, initial_paths)
+            return page
+
+        self._open_page(title_text, description, factory)
+
+    def _seed_page(self, page, initial_paths):
+        for method_name in ("load_images", "load_pdfs", "load_image"):
+            method = getattr(page, method_name, None)
+            if method is None:
+                continue
+            try:
+                method(initial_paths if method_name != "load_image" else initial_paths[0])
+            except Exception:
+                pass
+            return
 
     def open_settings_page(self):
         self._open_page(
@@ -276,9 +290,7 @@ class MainWindow(QMainWindow):
             for button in self.nav_buttons.values():
                 button.setChecked(False)
 
-        breadcrumb = QPushButton(f"←   Home  /  {title_text}")
-        breadcrumb.setObjectName("backButton")
-        breadcrumb.setCursor(Qt.CursorShape.PointingHandCursor)
+        breadcrumb = NavBreadcrumb(title_text)
         breadcrumb.clicked.connect(self.show_home)
         self.content_layout.addWidget(breadcrumb)
 
@@ -332,6 +344,8 @@ class MainWindow(QMainWindow):
         app = QApplication.instance()
         if app:
             app.setStyleSheet(stylesheet)
+
+        _apply_dark_title_bar(int(self.winId()), self.dark_mode)
 
     def resizeEvent(self, event):
         super().resizeEvent(event)
