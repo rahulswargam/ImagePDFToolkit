@@ -304,6 +304,13 @@ QLabel#fieldLabel {{
     font-size: 12.5px;
 }}
 
+QLabel#numberFieldUnit {{
+    font-family: "Roboto SemiBold";
+    color: {colors['text_secondary']};
+    background-color: transparent;
+    font-size: 13px;
+}}
+
 /* =========================
    BUTTONS
    ========================= */
