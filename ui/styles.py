@@ -311,6 +311,38 @@ QLabel#numberFieldUnit {{
     font-size: 13px;
 }}
 
+QSpinBox#numberFieldSpin {{
+    font-family: "Roboto SemiBold";
+    background-color: {colors['input_bg']};
+    color: {colors['input_text']};
+    border: 1px solid {colors['input_border']};
+    border-radius: 10px;
+    padding: 0px 4px 0px 12px;
+    font-size: 15px;
+    selection-background-color: {colors['accent']};
+}}
+
+QSpinBox#numberFieldSpin:focus {{
+    border: 1px solid {colors['accent']};
+}}
+
+QSpinBox#numberFieldSpin::up-button,
+QSpinBox#numberFieldSpin::down-button {{
+    width: 20px;
+    border: none;
+    background: transparent;
+}}
+
+QSpinBox#numberFieldSpin::up-button {{
+    subcontrol-position: top right;
+    margin: 3px 3px 0px 0px;
+}}
+
+QSpinBox#numberFieldSpin::down-button {{
+    subcontrol-position: bottom right;
+    margin: 0px 3px 3px 0px;
+}}
+
 /* =========================
    BUTTONS
    ========================= */
@@ -678,20 +710,6 @@ QPushButton#revealButton:pressed {{
     background-color: transparent;
 }}
 
-#emptyStateTitle {{
-    font-family: "Roboto SemiBold";
-    color: {colors['text_secondary']};
-    font-size: 14px;
-    background-color: transparent;
-}}
-
-#emptyStateSubtitle {{
-    font-family: "Roboto";
-    color: {colors['text_muted']};
-    font-size: 12.5px;
-    background-color: transparent;
-}}
-
 #modalCard {{
     background-color: {colors['surface']};
     border: 1px solid {colors['border']};
@@ -733,33 +751,6 @@ QFrame#quickActionRow:focus {{
     font-family: "Roboto";
     color: {colors['text_muted']};
     font-size: 11.5px;
-    background-color: transparent;
-}}
-
-QFrame#activityRow {{
-    background-color: transparent;
-    border: none;
-    border-bottom: 1px solid {colors['border']};
-}}
-
-#activityName {{
-    font-family: "Roboto Medium";
-    color: {colors['text_primary']};
-    font-size: 13px;
-    background-color: transparent;
-}}
-
-#activityDetail {{
-    font-family: "Roboto";
-    color: {colors['text_secondary']};
-    font-size: 12px;
-    background-color: transparent;
-}}
-
-#activityTime {{
-    font-family: "Roboto Medium";
-    color: {colors['text_muted']};
-    font-size: 11px;
     background-color: transparent;
 }}
 

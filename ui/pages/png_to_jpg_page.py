@@ -2,7 +2,6 @@ import os
 
 from PySide6.QtWidgets import QApplication, QFileDialog, QLabel, QVBoxLayout, QWidget
 
-import activity_store
 from tools.image_resizer import format_file_size, get_image_size
 from tools.png_to_jpg import convert_png_to_jpg
 from ui.components.buttons import AnimatedButton, ProcessingBar
@@ -112,8 +111,6 @@ class PngToJpgPage(QWidget):
         try:
             output_path = convert_png_to_jpg(self.input_path)
             self._last_output_folder = os.path.dirname(output_path)
-
-            activity_store.record("png_to_jpg", os.path.basename(self.input_path), "Converted to JPG")
 
             self.convert_button.set_processing(False)
             self.processing_bar.hide()

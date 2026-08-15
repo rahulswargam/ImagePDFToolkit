@@ -2,7 +2,6 @@ import os
 
 from PySide6.QtWidgets import QApplication, QFileDialog, QFrame, QHBoxLayout, QLabel, QVBoxLayout, QWidget
 
-import activity_store
 import settings_store
 from tools.image_resizer import compress_to_target_size, format_file_size, get_image_size
 from ui.components.buttons import AnimatedButton, ProcessingBar
@@ -212,12 +211,6 @@ class ImageResizerPage(QWidget):
                 achieved_total_bytes += achieved_bytes
                 saved += 1
                 last_output_folder = os.path.dirname(output_path)
-
-                activity_store.record(
-                    "resize",
-                    os.path.basename(input_path),
-                    f"{format_file_size(original_bytes)} → {format_file_size(int(achieved_bytes))}",
-                )
 
             except Exception as error:
                 failed.append(f"{os.path.basename(input_path)}: {error}")

@@ -2,7 +2,6 @@ import os
 
 from PySide6.QtWidgets import QApplication, QFileDialog, QLabel, QVBoxLayout, QWidget
 
-import activity_store
 from tools.image_resizer import format_file_size
 from tools.pdf_to_jpg import convert_pdf_to_jpg
 from ui.components.buttons import AnimatedButton, ProcessingBar
@@ -157,12 +156,6 @@ class PdfToJpgPage(QWidget):
                 converted_pdfs += 1
                 total_pages += len(output_paths)
                 last_output_root = os.path.dirname(os.path.dirname(output_paths[0]))
-
-                activity_store.record(
-                    "pdf_to_jpg",
-                    os.path.basename(input_path),
-                    f"Converted to JPG · {len(output_paths)} page(s)",
-                )
 
             except Exception as error:
                 failed.append(f"{os.path.basename(input_path)}: {error}")

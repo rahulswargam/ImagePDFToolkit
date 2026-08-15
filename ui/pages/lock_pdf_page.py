@@ -2,7 +2,6 @@ import os
 
 from PySide6.QtWidgets import QApplication, QFileDialog, QFrame, QHBoxLayout, QLabel, QVBoxLayout, QWidget
 
-import activity_store
 from tools.lock_pdf import lock_pdf
 from ui import icons as icon_lib
 from ui.components.buttons import AnimatedButton, ProcessingBar
@@ -144,8 +143,6 @@ class LockPdfPage(QWidget):
         try:
             output_path = lock_pdf(self.input_path, password)
             self._last_output_folder = os.path.dirname(output_path)
-
-            activity_store.record("lock", os.path.basename(output_path), "Password protected")
 
             self.password_field.clear()
             self.confirm_field.clear()
