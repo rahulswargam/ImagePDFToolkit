@@ -57,6 +57,8 @@ class DropWorkspace(QFrame):
         self.setAcceptDrops(True)
         self.setCursor(Qt.CursorShape.PointingHandCursor)
         self.setMinimumHeight(220)
+        self.setAccessibleName(f"{title} — {subtitle}")
+        self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
 
         layout = QVBoxLayout(self)
         layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -71,15 +73,15 @@ class DropWorkspace(QFrame):
         self._icon_animation = QPropertyAnimation(self._icon_opacity, b"opacity", self)
         layout.addWidget(self._icon_label, alignment=Qt.AlignmentFlag.AlignCenter)
 
-        title_label = QLabel(title)
-        title_label.setObjectName("dropWorkspaceTitle")
-        title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        layout.addWidget(title_label)
+        self._title_label = QLabel(title)
+        self._title_label.setObjectName("dropWorkspaceTitle")
+        self._title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(self._title_label)
 
-        subtitle_label = QLabel(subtitle)
-        subtitle_label.setObjectName("dropWorkspaceSubtitle")
-        subtitle_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        layout.addWidget(subtitle_label)
+        self._subtitle_label = QLabel(subtitle)
+        self._subtitle_label.setObjectName("dropWorkspaceSubtitle")
+        self._subtitle_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(self._subtitle_label)
 
         if hint:
             hint_label = QLabel(hint)
@@ -87,12 +89,15 @@ class DropWorkspace(QFrame):
             hint_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
             layout.addWidget(hint_label)
 
+        self._resting_title = title
+        self._resting_subtitle = subtitle
+
     def set_text(self, title, subtitle=None):
-        for child in self.findChildren(QLabel):
-            if child.objectName() == "dropWorkspaceTitle":
-                child.setText(title)
-            elif subtitle is not None and child.objectName() == "dropWorkspaceSubtitle":
-                child.setText(subtitle)
+        self._resting_title = title
+        self._title_label.setText(title)
+        if subtitle is not None:
+            self._resting_subtitle = subtitle
+            self._subtitle_label.setText(subtitle)
 
     def _matching_paths(self, event):
         if not event.mimeData().hasUrls():
@@ -108,13 +113,19 @@ class DropWorkspace(QFrame):
         self.setProperty("dragActive", active)
         self.style().unpolish(self)
         self.style().polish(self)
+
         if active:
+            self._title_label.setText("Release to add file")
+            self._subtitle_label.setText("Drop it anywhere in this area")
             self._pulse_icon()
+        else:
+            self._title_label.setText(self._resting_title)
+            self._subtitle_label.setText(self._resting_subtitle)
 
     def _pulse_icon(self):
         self._icon_animation.stop()
-        self._icon_animation.setDuration(240)
-        self._icon_animation.setStartValue(0.35)
+        self._icon_animation.setDuration(260)
+        self._icon_animation.setStartValue(0.2)
         self._icon_animation.setEndValue(1.0)
         self._icon_animation.setEasingCurve(QEasingCurve.Type.OutCubic)
         self._icon_animation.start()
@@ -148,6 +159,12 @@ class DropWorkspace(QFrame):
             self.browseRequested.emit()
         super().mousePressEvent(event)
 
+    def keyPressEvent(self, event):
+        if event.key() in (Qt.Key.Key_Return, Qt.Key.Key_Enter, Qt.Key.Key_Space):
+            self.browseRequested.emit()
+        else:
+            super().keyPressEvent(event)
+
 
 class FileGridItem(QFrame):
     """A single removable card in a FileGrid: thumbnail/type icon, name, meta, remove."""
@@ -176,6 +193,8 @@ class FileGridItem(QFrame):
         remove_button.setIconSize(QSize(13, 13))
         remove_button.setFixedSize(22, 22)
         remove_button.setCursor(Qt.CursorShape.PointingHandCursor)
+        remove_button.setToolTip(f"Remove {os.path.basename(file_path)}")
+        remove_button.setAccessibleName(f"Remove {os.path.basename(file_path)}")
         remove_button.clicked.connect(lambda: self.removed.emit(self.file_path))
         top_row.addWidget(remove_button)
         layout.addLayout(top_row)

@@ -32,3 +32,11 @@ desktop.ini
 
 # Logs
 *.log
+
+# Code-signing certificates — must NEVER be committed. See SIGNING.md.
+*.pfx
+*.p12
+*.cer
+*.crt
+*.pem
+*.key

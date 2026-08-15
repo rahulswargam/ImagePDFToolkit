@@ -1,4 +1,4 @@
-from PySide6.QtCore import QEasingCurve, QPropertyAnimation, Qt, QTimer, Signal
+from PySide6.QtCore import QEasingCurve, QParallelAnimationGroup, QPropertyAnimation, QRect, Qt, QTimer, Signal
 from PySide6.QtWidgets import (
     QDialog,
     QFrame,
@@ -93,79 +93,32 @@ class Toast(QFrame):
         self._animation.start()
 
 
-class SuccessPanel(QFrame):
-    """Inline success confirmation: check icon, title, detail, Open Folder / Done."""
+_KIND_ICON = {
+    "success": ("check", "#ffffff", "#16a34a"),
+    "error": ("x", "#ffffff", "#f97316"),
+    "warning": ("alert-triangle", "#ffffff", "#f97316"),
+    "info": ("check", "#ffffff", "#565c6d"),
+}
 
-    doneClicked = Signal()
-    openFolderClicked = Signal()
 
-    def __init__(self, parent=None):
+class CompletionDialog(QDialog):
+    """The single global result surface for every tool: success, error, warning,
+    or info. Replaces both the old inline SuccessPanel and ad-hoc QMessageBox use.
+
+    A big centered icon badge, a short title, a short human-readable summary
+    (never a filesystem path), a primary OK button, and an optional secondary
+    action (e.g. Open Folder) that does not have to close the dialog.
+    """
+
+    def __init__(self, title, message, kind="success", secondary_label=None, parent=None):
         super().__init__(parent)
 
-        self.setObjectName("successPanel")
-        self.hide()
-
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(20, 18, 20, 18)
-        layout.setSpacing(10)
-
-        header = QHBoxLayout()
-        header.setSpacing(10)
-
-        icon_badge = QLabel()
-        icon_badge.setObjectName("successIcon")
-        icon_badge.setFixedSize(26, 26)
-        icon_badge.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        icon_badge.setPixmap(icon_lib.get_pixmap("check", "#ffffff", 15))
-        header.addWidget(icon_badge)
-
-        self._title_label = QLabel("")
-        self._title_label.setObjectName("panelTitle")
-        header.addWidget(self._title_label)
-        header.addStretch()
-        layout.addLayout(header)
-
-        self._detail_label = QLabel("")
-        self._detail_label.setObjectName("panelDetail")
-        self._detail_label.setWordWrap(True)
-        layout.addWidget(self._detail_label)
-
-        button_row = QHBoxLayout()
-        button_row.setSpacing(10)
-
-        self._open_button = AnimatedButton("Open Folder")
-        self._open_button.setObjectName("secondaryButton")
-        self._open_button.clicked.connect(self.openFolderClicked.emit)
-
-        done_button = AnimatedButton("Done")
-        done_button.setObjectName("toolButton")
-        done_button.clicked.connect(self._on_done)
-
-        button_row.addWidget(self._open_button)
-        button_row.addWidget(done_button)
-        button_row.addStretch()
-        layout.addLayout(button_row)
-
-    def show_success(self, title, detail):
-        self._title_label.setText(title)
-        self._detail_label.setText(detail)
-        self.show()
-
-    def _on_done(self):
-        self.hide()
-        self.doneClicked.emit()
-
-
-class Modal(QDialog):
-    """A themed replacement for QMessageBox, used for error/warning summaries."""
-
-    def __init__(self, title, message, kind="error", parent=None):
-        super().__init__(parent)
+        self._secondary_action = None
 
         self.setWindowFlags(Qt.WindowType.FramelessWindowHint | Qt.WindowType.Dialog)
         self.setModal(True)
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
-        self.setFixedWidth(380)
+        self.setFixedWidth(400)
 
         outer = QVBoxLayout(self)
         outer.setContentsMargins(0, 0, 0, 0)
@@ -175,42 +128,112 @@ class Modal(QDialog):
         outer.addWidget(card)
 
         layout = QVBoxLayout(card)
-        layout.setContentsMargins(24, 22, 24, 20)
-        layout.setSpacing(12)
+        layout.setContentsMargins(32, 32, 32, 26)
+        layout.setSpacing(6)
+        layout.setAlignment(Qt.AlignmentFlag.AlignHCenter)
 
-        header = QHBoxLayout()
-        header.setSpacing(10)
+        icon_name, icon_color, badge_color = _KIND_ICON.get(kind, _KIND_ICON["info"])
 
-        icon_name = "check" if kind == "success" else "alert-triangle"
-        icon_color = "#16a34a" if kind == "success" else "#f97316"
-        icon_label = QLabel()
-        icon_label.setPixmap(icon_lib.get_pixmap(icon_name, icon_color, 22))
-        header.addWidget(icon_label)
+        badge = QLabel()
+        badge.setObjectName("completionBadge")
+        badge.setProperty("kind", kind)
+        badge.setFixedSize(56, 56)
+        badge.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        badge.setPixmap(icon_lib.get_pixmap(icon_name, icon_color, 26))
+        layout.addWidget(badge, alignment=Qt.AlignmentFlag.AlignHCenter)
+        layout.addSpacing(16)
 
         title_label = QLabel(title)
-        title_label.setObjectName("panelTitle")
-        header.addWidget(title_label)
-        header.addStretch()
-        layout.addLayout(header)
+        title_label.setObjectName("completionTitle")
+        title_label.setAlignment(Qt.AlignmentFlag.AlignHCenter)
+        title_label.setWordWrap(True)
+        layout.addWidget(title_label)
+        layout.addSpacing(6)
 
         message_label = QLabel(message)
-        message_label.setObjectName("panelDetail")
+        message_label.setObjectName("completionMessage")
+        message_label.setAlignment(Qt.AlignmentFlag.AlignHCenter)
         message_label.setWordWrap(True)
         layout.addWidget(message_label)
-
-        close_button = AnimatedButton("OK")
-        close_button.setObjectName("toolButton")
-        close_button.clicked.connect(self.accept)
+        layout.addSpacing(22)
 
         button_row = QHBoxLayout()
+        button_row.setSpacing(10)
         button_row.addStretch()
-        button_row.addWidget(close_button)
+
+        if secondary_label:
+            secondary_button = AnimatedButton(secondary_label)
+            secondary_button.setObjectName("secondaryButton")
+            secondary_button.clicked.connect(self._run_secondary)
+            button_row.addWidget(secondary_button)
+
+        ok_button = AnimatedButton("OK")
+        ok_button.setObjectName("toolButton")
+        ok_button.setMinimumWidth(96)
+        ok_button.clicked.connect(self.accept)
+        ok_button.setDefault(True)
+        button_row.addWidget(ok_button)
+        button_row.addStretch()
+
         layout.addLayout(button_row)
+
+        self._card = card
+        self._entrance_animation = None
+
+    def set_secondary_action(self, callback):
+        self._secondary_action = callback
+
+    def _run_secondary(self):
+        if self._secondary_action:
+            self._secondary_action()
+
+    def showEvent(self, event):
+        super().showEvent(event)
+        self._play_entrance()
+
+    def _play_entrance(self):
+        # Top-level window properties (windowOpacity, geometry) — not a
+        # QGraphicsEffect, so this cannot trigger the nested-effect layout
+        # corruption that AnimatedButton's own opacity effect is prone to.
+        final_rect = self.geometry()
+        start_rect = QRect(final_rect)
+        shrink = 10
+        start_rect.adjust(shrink, shrink, -shrink, -shrink)
+
+        self.setWindowOpacity(0.0)
+
+        opacity_anim = QPropertyAnimation(self, b"windowOpacity", self)
+        opacity_anim.setDuration(160)
+        opacity_anim.setStartValue(0.0)
+        opacity_anim.setEndValue(1.0)
+        opacity_anim.setEasingCurve(QEasingCurve.Type.OutCubic)
+
+        geometry_anim = QPropertyAnimation(self, b"geometry", self)
+        geometry_anim.setDuration(180)
+        geometry_anim.setStartValue(start_rect)
+        geometry_anim.setEndValue(final_rect)
+        geometry_anim.setEasingCurve(QEasingCurve.Type.OutCubic)
+
+        self._entrance_animation = QParallelAnimationGroup(self)
+        self._entrance_animation.addAnimation(opacity_anim)
+        self._entrance_animation.addAnimation(geometry_anim)
+        self._entrance_animation.start()
+
+    @staticmethod
+    def success(parent, title, message, open_folder=None):
+        dialog = CompletionDialog(
+            title, message, kind="success",
+            secondary_label="Open Folder" if open_folder else None,
+            parent=parent,
+        )
+        if open_folder:
+            dialog.set_secondary_action(open_folder)
+        dialog.exec()
+
+    @staticmethod
+    def error(parent, title, message):
+        CompletionDialog(title, message, kind="error", parent=parent).exec()
 
     @staticmethod
     def warn(parent, title, message):
-        Modal(title, message, kind="error", parent=parent).exec()
-
-    @staticmethod
-    def info(parent, title, message):
-        Modal(title, message, kind="success", parent=parent).exec()
+        CompletionDialog(title, message, kind="warning", parent=parent).exec()

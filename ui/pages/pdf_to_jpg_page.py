@@ -6,13 +6,14 @@ import activity_store
 from tools.image_resizer import format_file_size
 from tools.pdf_to_jpg import convert_pdf_to_jpg
 from ui.components.buttons import AnimatedButton, ProcessingBar
-from ui.components.feedback import Modal, SuccessPanel
+from ui.components.feedback import CompletionDialog
 from ui.components.workspace import MAX_BATCH_FILES, DropWorkspace, FileGrid, clip_to_max_files
 
 EXTENSIONS = (".pdf",)
 MAX_QUALITY = 100
 MAX_DPI = 600
 _ACCENT = "#ef4444"
+_MAX_FAILURES_SHOWN = 3
 
 
 class PdfToJpgPage(QWidget):
@@ -71,11 +72,6 @@ class PdfToJpgPage(QWidget):
         self.processing_bar = ProcessingBar()
         main_layout.addWidget(self.processing_bar)
 
-        self.success_panel = SuccessPanel()
-        self.success_panel.openFolderClicked.connect(self._open_output_folder)
-        self.success_panel.doneClicked.connect(self._reset)
-        main_layout.addWidget(self.success_panel)
-
         main_layout.addStretch()
 
     def _pdf_meta(self, path):
@@ -102,7 +98,7 @@ class PdfToJpgPage(QWidget):
         self.refresh_summary()
 
         if truncated:
-            Modal.warn(
+            CompletionDialog.warn(
                 self,
                 "Too Many PDFs",
                 f"Only the first {MAX_BATCH_FILES} PDFs were kept "
@@ -116,7 +112,6 @@ class PdfToJpgPage(QWidget):
     def refresh_summary(self):
 
         file_paths = self.input_paths
-        self.success_panel.hide()
 
         if not file_paths:
             self.summary_label.hide()
@@ -139,7 +134,10 @@ class PdfToJpgPage(QWidget):
         if not self.input_paths:
             return
 
-        self.convert_button.set_processing(True, "Converting…")
+        total = len(self.input_paths)
+        self.convert_button.set_processing(True, "Preparing…")
+        self.processing_bar.setRange(0, total)
+        self.processing_bar.setValue(0)
         self.processing_bar.show()
         QApplication.processEvents()
 
@@ -148,7 +146,12 @@ class PdfToJpgPage(QWidget):
         failed = []
         last_output_root = None
 
-        for input_path in self.input_paths:
+        for index, input_path in enumerate(self.input_paths, start=1):
+            plural = "PDF" if total == 1 else "PDFs"
+            self.convert_button.set_processing(True, f"Converting {index} of {total} {plural}…")
+            self.processing_bar.setValue(index - 1)
+            QApplication.processEvents()
+
             try:
                 output_paths = convert_pdf_to_jpg(input_path, MAX_QUALITY, MAX_DPI)
                 converted_pdfs += 1
@@ -164,26 +167,33 @@ class PdfToJpgPage(QWidget):
             except Exception as error:
                 failed.append(f"{os.path.basename(input_path)}: {error}")
 
+            self.processing_bar.setValue(index)
+            QApplication.processEvents()
+
         self.convert_button.set_processing(False)
         self.processing_bar.hide()
         self._last_output_folder = last_output_root
 
         if converted_pdfs:
-            pdf_plural = "PDF" if converted_pdfs == 1 else "PDFs"
             page_plural = "page" if total_pages == 1 else "pages"
-            self.success_panel.show_success(
-                "Conversion complete",
-                f"{converted_pdfs} {pdf_plural} converted — {total_pages} {page_plural} total",
+            CompletionDialog.success(
+                self,
+                "Processing complete",
+                f"{total_pages} {page_plural} exported successfully.",
+                open_folder=self._open_output_folder,
             )
 
         if failed:
-            Modal.warn(self, "Some PDFs Failed", "Could not convert:\n\n" + "\n".join(failed))
+            self._show_failures("Some PDFs Failed", failed)
+
+    def _show_failures(self, title, failed):
+        shown = failed[:_MAX_FAILURES_SHOWN]
+        message = "\n".join(shown)
+        remaining = len(failed) - len(shown)
+        if remaining > 0:
+            message += f"\n…and {remaining} more."
+        CompletionDialog.error(self, title, message)
 
     def _open_output_folder(self):
         if self._last_output_folder and os.path.isdir(self._last_output_folder):
             os.startfile(self._last_output_folder)
-
-    def _reset(self):
-        self.input_paths = []
-        self.file_grid.set_files([])
-        self.refresh_summary()

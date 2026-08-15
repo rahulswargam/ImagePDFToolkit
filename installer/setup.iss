@@ -3,15 +3,20 @@
 ; Produces:   dist\ImagePDFToolkit-Setup.exe
 
 #define MyAppName "Image & PDF Toolkit"
+#define MyAppPublisher "Rahul Swargam"
 #define VersionFile FileOpen(SourcePath + "..\VERSION")
 #define MyAppVersion Trim(FileRead(VersionFile))
 #expr FileClose(VersionFile)
 #define MyAppExeName "ImagePDFToolkit.exe"
+#define MyAppCopyright "Copyright © 2026 Rahul Swargam"
 
 [Setup]
 AppId={{6B2E6C7B-6E7C-4E1E-9C7C-6B2E6C7B6E7C}}
 AppName={#MyAppName}
 AppVersion={#MyAppVersion}
+AppPublisher={#MyAppPublisher}
+AppCopyright={#MyAppCopyright}
+AppComments={#MyAppName} — fast, private, offline image and PDF tools.
 DefaultDirName={autopf}\{#MyAppName}
 DefaultGroupName={#MyAppName}
 DisableProgramGroupPage=yes
@@ -19,6 +24,11 @@ OutputDir=..\dist
 OutputBaseFilename=ImagePDFToolkit-Setup
 SetupIconFile=..\assets\icons\app.ico
 UninstallDisplayIcon={app}\{#MyAppExeName}
+VersionInfoVersion={#MyAppVersion}
+VersionInfoCompany={#MyAppPublisher}
+VersionInfoDescription={#MyAppName} Setup
+VersionInfoProductName={#MyAppName}
+VersionInfoCopyright={#MyAppCopyright}
 Compression=lzma2
 SolidCompression=yes
 WizardStyle=modern

@@ -6,12 +6,13 @@ import activity_store
 import settings_store
 from tools.image_resizer import compress_to_target_size, format_file_size, get_image_size
 from ui.components.buttons import AnimatedButton, ProcessingBar
-from ui.components.feedback import Modal, SuccessPanel
-from ui.components.inputs import SliderInput
+from ui.components.feedback import CompletionDialog
+from ui.components.inputs import NumberField
 from ui.components.workspace import MAX_BATCH_FILES, DropWorkspace, FileGrid, clip_to_max_files
 
 EXTENSIONS = (".jpg", ".jpeg", ".png", ".webp", ".bmp")
 _ACCENT = "#ef4444"
+_MAX_FAILURES_SHOWN = 3
 
 
 class ImageResizerPage(QWidget):
@@ -83,20 +84,20 @@ class ImageResizerPage(QWidget):
         options_layout = QHBoxLayout()
         options_layout.setSpacing(28)
 
-        self.target_slider = SliderInput(
+        self.target_field = NumberField(
             "Target Size", 5, 5000, settings_store.get_default_target_kb(), suffix=" KB"
         )
-        self.quality_slider = SliderInput(
+        self.quality_field = NumberField(
             "Maximum JPG Quality", 5, 100, settings_store.get_default_quality(), suffix="%"
         )
-        options_layout.addWidget(self.target_slider)
-        options_layout.addWidget(self.quality_slider)
+        options_layout.addWidget(self.target_field)
+        options_layout.addWidget(self.quality_field)
         settings_layout.addLayout(options_layout)
 
         main_layout.addWidget(settings_card)
 
         # =========================
-        # ACTION / FEEDBACK
+        # ACTION
         # =========================
 
         self.compress_button = AnimatedButton("Compress Images")
@@ -108,11 +109,6 @@ class ImageResizerPage(QWidget):
 
         self.processing_bar = ProcessingBar()
         main_layout.addWidget(self.processing_bar)
-
-        self.success_panel = SuccessPanel()
-        self.success_panel.openFolderClicked.connect(self._open_output_folder)
-        self.success_panel.doneClicked.connect(self._reset)
-        main_layout.addWidget(self.success_panel)
 
         main_layout.addStretch()
 
@@ -145,7 +141,7 @@ class ImageResizerPage(QWidget):
         self.refresh_summary()
 
         if truncated:
-            Modal.warn(
+            CompletionDialog.warn(
                 self,
                 "Too Many Images",
                 f"Only the first {MAX_BATCH_FILES} images were kept "
@@ -159,7 +155,6 @@ class ImageResizerPage(QWidget):
     def refresh_summary(self):
 
         file_paths = self.input_paths
-        self.success_panel.hide()
 
         if not file_paths:
             self.summary_label.hide()
@@ -183,10 +178,13 @@ class ImageResizerPage(QWidget):
         if not self.input_paths:
             return
 
-        target_kb = self.target_slider.value()
-        max_quality = self.quality_slider.value()
+        target_kb = self.target_field.value()
+        max_quality = self.quality_field.value()
+        total = len(self.input_paths)
 
-        self.compress_button.set_processing(True, "Compressing…")
+        self.compress_button.set_processing(True, "Preparing…")
+        self.processing_bar.setRange(0, total)
+        self.processing_bar.setValue(0)
         self.processing_bar.show()
         QApplication.processEvents()
 
@@ -196,7 +194,12 @@ class ImageResizerPage(QWidget):
         original_total_bytes = 0
         achieved_total_bytes = 0
 
-        for input_path in self.input_paths:
+        for index, input_path in enumerate(self.input_paths, start=1):
+            plural = "image" if total == 1 else "images"
+            self.compress_button.set_processing(True, f"Compressing {index} of {total} {plural}…")
+            self.processing_bar.setValue(index - 1)
+            QApplication.processEvents()
+
             try:
                 original_bytes = os.path.getsize(input_path)
                 original_total_bytes += original_bytes
@@ -219,26 +222,33 @@ class ImageResizerPage(QWidget):
             except Exception as error:
                 failed.append(f"{os.path.basename(input_path)}: {error}")
 
+            self.processing_bar.setValue(index)
+            QApplication.processEvents()
+
         self.compress_button.set_processing(False)
         self.processing_bar.hide()
         self._last_output_folder = last_output_folder
 
         if saved:
             plural = "image" if saved == 1 else "images"
-            self.success_panel.show_success(
-                "Compression complete",
-                f"{saved} {plural} compressed\n"
-                f"{format_file_size(original_total_bytes)} → {format_file_size(int(achieved_total_bytes))}",
+            CompletionDialog.success(
+                self,
+                "Processing complete",
+                f"{saved} {plural} compressed successfully.",
+                open_folder=self._open_output_folder,
             )
 
         if failed:
-            Modal.warn(self, "Some Images Failed", "Could not compress:\n\n" + "\n".join(failed))
+            self._show_failures("Some Images Failed", failed)
+
+    def _show_failures(self, title, failed):
+        shown = failed[:_MAX_FAILURES_SHOWN]
+        message = "\n".join(shown)
+        remaining = len(failed) - len(shown)
+        if remaining > 0:
+            message += f"\n…and {remaining} more."
+        CompletionDialog.error(self, title, message)
 
     def _open_output_folder(self):
         if self._last_output_folder and os.path.isdir(self._last_output_folder):
             os.startfile(self._last_output_folder)
-
-    def _reset(self):
-        self.input_paths = []
-        self.file_grid.set_files([])
-        self.refresh_summary()

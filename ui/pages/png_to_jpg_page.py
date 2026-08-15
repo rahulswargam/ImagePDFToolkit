@@ -6,7 +6,7 @@ import activity_store
 from tools.image_resizer import format_file_size, get_image_size
 from tools.png_to_jpg import convert_png_to_jpg
 from ui.components.buttons import AnimatedButton, ProcessingBar
-from ui.components.feedback import Modal, SuccessPanel
+from ui.components.feedback import CompletionDialog
 from ui.components.workspace import DropWorkspace, FileGrid
 
 EXTENSIONS = (".png", ".webp", ".bmp", ".gif", ".tiff")
@@ -60,11 +60,6 @@ class PngToJpgPage(QWidget):
         self.processing_bar = ProcessingBar()
         main_layout.addWidget(self.processing_bar)
 
-        self.success_panel = SuccessPanel()
-        self.success_panel.openFolderClicked.connect(self._open_output_folder)
-        self.success_panel.doneClicked.connect(self._reset)
-        main_layout.addWidget(self.success_panel)
-
         main_layout.addStretch()
 
     def _image_meta(self, path):
@@ -97,8 +92,6 @@ class PngToJpgPage(QWidget):
         self._refresh()
 
     def _refresh(self):
-        self.success_panel.hide()
-
         if not self.input_path:
             self.convert_button.setEnabled(False)
             self.drop_workspace.set_text("Drop an image here", "Drag & drop an image, or click to browse")
@@ -122,23 +115,22 @@ class PngToJpgPage(QWidget):
 
             activity_store.record("png_to_jpg", os.path.basename(self.input_path), "Converted to JPG")
 
-            self.success_panel.show_success(
-                "Conversion complete",
-                f"{os.path.basename(self.input_path)} converted to JPG",
-            )
-
-        except Exception as error:
-            Modal.warn(self, "Conversion Failed", f"Could not convert image.\n\n{error}")
-
-        finally:
             self.convert_button.set_processing(False)
             self.processing_bar.hide()
+
+            CompletionDialog.success(
+                self,
+                "Processing complete",
+                "1 image converted successfully.",
+                open_folder=self._open_output_folder,
+            )
+            return
+
+        except Exception as error:
+            self.convert_button.set_processing(False)
+            self.processing_bar.hide()
+            CompletionDialog.error(self, "Processing Failed", f"Could not convert this image.\n\n{error}")
 
     def _open_output_folder(self):
         if self._last_output_folder and os.path.isdir(self._last_output_folder):
             os.startfile(self._last_output_folder)
-
-    def _reset(self):
-        self.input_path = None
-        self.file_grid.set_files([])
-        self._refresh()

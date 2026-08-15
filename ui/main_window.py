@@ -15,6 +15,7 @@ from PySide6.QtWidgets import (
 )
 
 import settings_store
+from ui.components.animation import fade_in
 from ui.components.nav import NavBreadcrumb, NavItem
 from ui.components.scroll import SmoothScrollArea
 from ui.components.feedback import Toast
@@ -298,6 +299,7 @@ class MainWindow(QMainWindow):
 
         title = QLabel(title_text)
         title.setObjectName("pageTitle")
+        fade_in(title)
 
         subtitle = QLabel(description)
         subtitle.setObjectName("pageSubtitle")
