@@ -11,7 +11,13 @@ from PySide6.QtWidgets import (
 )
 
 from tools.pdf_to_jpg import convert_pdf_to_jpg
-from ui.widgets import MAX_BATCH_FILES, AnimatedButton, DropArea, clip_to_max_files
+from ui.widgets import (
+    MAX_BATCH_FILES,
+    AnimatedButton,
+    DropArea,
+    FileListWidget,
+    clip_to_max_files,
+)
 
 EXTENSIONS = (".pdf",)
 MAX_QUALITY = 100
@@ -75,6 +81,9 @@ class PdfToJpgPage(QWidget):
 
         main_layout.addWidget(file_card)
 
+        self.file_list = FileListWidget(icon_glyph="📄")
+        main_layout.addWidget(self.file_list)
+
         note = QLabel(
             "Each PDF's pages are exported at maximum quality and resolution "
             "(600 DPI) into their own subfolder."
@@ -91,6 +100,8 @@ class PdfToJpgPage(QWidget):
         main_layout.addWidget(convert_button)
         main_layout.addStretch()
 
+        self.file_list.filesChanged.connect(self.on_files_changed)
+
     def select_pdfs(self):
 
         file_paths, _ = QFileDialog.getOpenFileNames(
@@ -102,14 +113,11 @@ class PdfToJpgPage(QWidget):
 
     def load_pdfs(self, file_paths):
 
-        file_paths, truncated = clip_to_max_files(file_paths)
+        file_paths, truncated = clip_to_max_files(list(self.input_paths) + list(file_paths))
 
         self.input_paths = file_paths
-
-        names = "\n".join(os.path.basename(path) for path in file_paths)
-        self.files_label.setText(f"{len(file_paths)} PDF(s) selected:\n{names}")
-
-        self.drop_area.setText(f"{len(file_paths)} PDF(s) ready")
+        self.file_list.set_files(file_paths)
+        self.refresh_summary()
 
         if truncated:
             QMessageBox.warning(
@@ -118,6 +126,23 @@ class PdfToJpgPage(QWidget):
                 f"Only the first {MAX_BATCH_FILES} PDFs were kept "
                 f"({truncated} extra file(s) were not added).",
             )
+
+    def on_files_changed(self, file_paths):
+        self.input_paths = file_paths
+        self.refresh_summary()
+
+    def refresh_summary(self):
+
+        file_paths = self.input_paths
+
+        if not file_paths:
+            self.files_label.setText("No PDFs selected")
+            self.drop_area.reset()
+            return
+
+        plural = "PDF" if len(file_paths) == 1 else "PDFs"
+        self.files_label.setText(f"{len(file_paths)} {plural} selected")
+        self.drop_area.setText(f"{len(file_paths)} {plural} ready")
 
     def convert(self):
 

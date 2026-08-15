@@ -207,6 +207,16 @@ class MainWindow(QMainWindow):
         self.clear_content()
         self.home_button.setChecked(True)
 
+        badge_container = QWidget()
+        badge_row = QHBoxLayout(badge_container)
+        badge_row.setContentsMargins(0, 0, 0, 0)
+        badge = QLabel("⚡  FAST · PRIVATE · OFFLINE")
+        badge.setObjectName("heroBadge")
+        badge_row.addWidget(badge)
+        badge_row.addStretch()
+        self.content_layout.addWidget(badge_container)
+        self.content_layout.addSpacing(14)
+
         page_title = QLabel("Image & PDF Toolkit")
         page_title.setObjectName("pageTitle")
 

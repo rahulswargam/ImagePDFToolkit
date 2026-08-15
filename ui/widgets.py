@@ -1,5 +1,7 @@
+import os
+
 from PySide6.QtCore import QEasingCurve, QPropertyAnimation, Qt, QTimer, Signal
-from PySide6.QtGui import QPixmap
+from PySide6.QtGui import QFontMetrics, QPixmap
 from PySide6.QtWidgets import (
     QFrame,
     QGraphicsOpacityEffect,
@@ -9,7 +11,10 @@ from PySide6.QtWidgets import (
     QPushButton,
     QScrollArea,
     QVBoxLayout,
+    QWidget,
 )
+
+from tools.image_resizer import format_file_size
 
 ICON_BADGE_SIZE = 52
 
@@ -225,6 +230,103 @@ class DropArea(QLabel):
 
         self.filesDropped.emit(paths)
         event.acceptProposedAction()
+
+
+class FileRow(QFrame):
+    """A single removable row in a FileListWidget: icon, name, size, remove button."""
+
+    removed = Signal(str)
+
+    def __init__(self, file_path, icon_glyph="📄", parent=None):
+        super().__init__(parent)
+
+        self.file_path = file_path
+
+        self.setObjectName("fileRow")
+
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(12, 8, 8, 8)
+        layout.setSpacing(12)
+
+        icon_label = QLabel(icon_glyph)
+        icon_label.setObjectName("fileRowIcon")
+        icon_label.setFixedSize(36, 36)
+        icon_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(icon_label)
+
+        text_layout = QVBoxLayout()
+        text_layout.setSpacing(2)
+
+        name_label = QLabel(self._elided_name(file_path))
+        name_label.setObjectName("fileRowName")
+        name_label.setToolTip(os.path.basename(file_path))
+
+        meta_label = QLabel(self._file_size_text(file_path))
+        meta_label.setObjectName("fileRowMeta")
+
+        text_layout.addWidget(name_label)
+        text_layout.addWidget(meta_label)
+        layout.addLayout(text_layout, 1)
+
+        remove_button = QPushButton("✕")
+        remove_button.setObjectName("fileRowRemove")
+        remove_button.setFixedSize(28, 28)
+        remove_button.setCursor(Qt.CursorShape.PointingHandCursor)
+        remove_button.clicked.connect(lambda: self.removed.emit(self.file_path))
+        layout.addWidget(remove_button)
+
+    @staticmethod
+    def _elided_name(file_path):
+        name = os.path.basename(file_path)
+        metrics = QFontMetrics(QLabel().font())
+        return metrics.elidedText(name, Qt.TextElideMode.ElideMiddle, 320)
+
+    @staticmethod
+    def _file_size_text(file_path):
+        try:
+            return format_file_size(os.path.getsize(file_path))
+        except OSError:
+            return ""
+
+
+class FileListWidget(QWidget):
+    """A vertical list of removable FileRow entries for a batch file selection."""
+
+    filesChanged = Signal(list)
+
+    def __init__(self, icon_glyph="📄", parent=None):
+        super().__init__(parent)
+
+        self._paths = []
+        self._icon_glyph = icon_glyph
+
+        self._layout = QVBoxLayout(self)
+        self._layout.setContentsMargins(0, 0, 0, 0)
+        self._layout.setSpacing(8)
+
+    def set_files(self, paths):
+        self._paths = list(paths)
+        self._rebuild()
+
+    def paths(self):
+        return list(self._paths)
+
+    def _rebuild(self):
+        while self._layout.count():
+            item = self._layout.takeAt(0)
+            widget = item.widget()
+            if widget:
+                widget.deleteLater()
+
+        for path in self._paths:
+            row = FileRow(path, self._icon_glyph)
+            row.removed.connect(self._remove_path)
+            self._layout.addWidget(row)
+
+    def _remove_path(self, path):
+        self._paths = [p for p in self._paths if p != path]
+        self._rebuild()
+        self.filesChanged.emit(self._paths)
 
 
 class Toast(QFrame):

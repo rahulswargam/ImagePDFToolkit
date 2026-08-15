@@ -16,8 +16,8 @@ from PIL import Image, ImageDraw
 SIZE = 256
 OUT_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "tools")
 
-ACCENT_START = (79, 70, 229)   # indigo #4f46e5
-ACCENT_END = (99, 102, 241)    # indigo #6366f1
+ACCENT_START = (220, 38, 38)   # red #dc2626
+ACCENT_END = (239, 68, 68)     # red #ef4444
 WHITE = (255, 255, 255, 255)
 
 
