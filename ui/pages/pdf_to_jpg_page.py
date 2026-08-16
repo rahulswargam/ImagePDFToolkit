@@ -22,7 +22,7 @@ class PdfToJpgPage(QWidget):
 
         self.notify = notify
         self.input_paths = []
-        self._last_output_folder = None
+        self._last_output_path = None
 
         self.setup_ui()
 
@@ -143,7 +143,7 @@ class PdfToJpgPage(QWidget):
         converted_pdfs = 0
         total_pages = 0
         failed = []
-        last_output_root = None
+        last_output_path = None
 
         for index, input_path in enumerate(self.input_paths, start=1):
             plural = "PDF" if total == 1 else "PDFs"
@@ -155,7 +155,7 @@ class PdfToJpgPage(QWidget):
                 output_paths = convert_pdf_to_jpg(input_path, MAX_QUALITY, MAX_DPI)
                 converted_pdfs += 1
                 total_pages += len(output_paths)
-                last_output_root = os.path.dirname(os.path.dirname(output_paths[0]))
+                last_output_path = output_paths[0]
 
             except Exception as error:
                 failed.append(f"{os.path.basename(input_path)}: {error}")
@@ -165,7 +165,7 @@ class PdfToJpgPage(QWidget):
 
         self.convert_button.set_processing(False)
         self.processing_bar.hide()
-        self._last_output_folder = last_output_root
+        self._last_output_path = last_output_path
 
         if converted_pdfs:
             page_plural = "page" if total_pages == 1 else "pages"
@@ -173,7 +173,7 @@ class PdfToJpgPage(QWidget):
                 self,
                 "Processing complete",
                 f"{total_pages} {page_plural} exported successfully.",
-                open_folder=self._open_output_folder,
+                open_file=self._open_output_file,
             )
 
         if failed:
@@ -187,6 +187,6 @@ class PdfToJpgPage(QWidget):
             message += f"\n…and {remaining} more."
         CompletionDialog.error(self, title, message)
 
-    def _open_output_folder(self):
-        if self._last_output_folder and os.path.isdir(self._last_output_folder):
-            os.startfile(self._last_output_folder)
+    def _open_output_file(self):
+        if self._last_output_path and os.path.isfile(self._last_output_path):
+            os.startfile(self._last_output_path)

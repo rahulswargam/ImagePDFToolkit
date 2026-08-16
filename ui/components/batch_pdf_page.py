@@ -34,7 +34,7 @@ class BatchPdfToolPage(QWidget):
 
         self.notify = notify
         self.input_paths = []
-        self._last_output_folder = None
+        self._last_output_path = None
 
         self.setup_ui()
 
@@ -162,7 +162,7 @@ class BatchPdfToolPage(QWidget):
 
         saved = 0
         failed = []
-        last_output_folder = None
+        last_output_path = None
 
         for index, input_path in enumerate(self.input_paths, start=1):
             self.process_button.set_processing(True, f"{self.PROCESSING_VERB} {index} of {total}…")
@@ -172,7 +172,7 @@ class BatchPdfToolPage(QWidget):
             try:
                 output_path = self.process_one(input_path)
                 saved += 1
-                last_output_folder = os.path.dirname(output_path)
+                last_output_path = output_path
 
             except Exception as error:
                 failed.append(f"{os.path.basename(input_path)}: {error}")
@@ -182,14 +182,14 @@ class BatchPdfToolPage(QWidget):
 
         self.process_button.set_processing(False)
         self.processing_bar.hide()
-        self._last_output_folder = last_output_folder
+        self._last_output_path = last_output_path
 
         if saved:
             CompletionDialog.success(
                 self,
                 "Processing complete",
                 self.success_message(saved, total),
-                open_folder=self._open_output_folder,
+                open_file=self._open_output_file,
             )
 
         if failed:
@@ -203,6 +203,6 @@ class BatchPdfToolPage(QWidget):
             message += f"\n…and {remaining} more."
         CompletionDialog.error(self, title, message)
 
-    def _open_output_folder(self):
-        if self._last_output_folder and os.path.isdir(self._last_output_folder):
-            os.startfile(self._last_output_folder)
+    def _open_output_file(self):
+        if self._last_output_path and os.path.isfile(self._last_output_path):
+            os.startfile(self._last_output_path)

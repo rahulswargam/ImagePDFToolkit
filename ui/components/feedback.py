@@ -107,7 +107,7 @@ class CompletionDialog(QDialog):
 
     A big centered icon badge, a short title, a short human-readable summary
     (never a filesystem path), a primary OK button, and an optional secondary
-    action (e.g. Open Folder) that closes the dialog before running.
+    action (e.g. Open File) that closes the dialog before running.
     """
 
     def __init__(self, title, message, kind="success", secondary_label=None, parent=None):
@@ -226,14 +226,14 @@ class CompletionDialog(QDialog):
         self._entrance_animation.start()
 
     @staticmethod
-    def success(parent, title, message, open_folder=None):
+    def success(parent, title, message, open_file=None):
         dialog = CompletionDialog(
             title, message, kind="success",
-            secondary_label="Open Folder" if open_folder else None,
+            secondary_label="Open File" if open_file else None,
             parent=parent,
         )
-        if open_folder:
-            dialog.set_secondary_action(open_folder)
+        if open_file:
+            dialog.set_secondary_action(open_file)
         dialog.exec()
 
     @staticmethod

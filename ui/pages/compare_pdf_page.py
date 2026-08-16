@@ -71,7 +71,7 @@ class ComparePdfPage(QWidget):
         super().__init__(parent)
 
         self.notify = notify
-        self._last_output_folder = None
+        self._last_output_path = None
 
         self.setup_ui()
 
@@ -138,7 +138,7 @@ class ComparePdfPage(QWidget):
 
         try:
             report_path, differing, total = compare_pdfs(self.slot_a.path, self.slot_b.path)
-            self._last_output_folder = os.path.dirname(report_path)
+            self._last_output_path = report_path
 
             self.compare_button.set_processing(False)
             self.processing_bar.hide()
@@ -157,7 +157,7 @@ class ComparePdfPage(QWidget):
                 self,
                 "Comparison complete",
                 f"{summary}\nA full report was saved.",
-                open_folder=self._open_output_folder,
+                open_file=self._open_output_file,
             )
 
         except Exception as error:
@@ -165,6 +165,6 @@ class ComparePdfPage(QWidget):
             self.processing_bar.hide()
             CompletionDialog.error(self, "Comparison Failed", f"Unable to compare these PDFs.\n\n{error}")
 
-    def _open_output_folder(self):
-        if self._last_output_folder and os.path.isdir(self._last_output_folder):
-            os.startfile(self._last_output_folder)
+    def _open_output_file(self):
+        if self._last_output_path and os.path.isfile(self._last_output_path):
+            os.startfile(self._last_output_path)
