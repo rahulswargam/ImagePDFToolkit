@@ -203,6 +203,43 @@ QPushButton#themeToggle:hover {{
     padding-top: 12px;
 }}
 
+QScrollArea#sidebarNavScroll {{
+    background-color: transparent;
+    border: none;
+}}
+
+QWidget#sidebarNavViewport {{
+    background-color: transparent;
+}}
+
+#sidebar QScrollBar:vertical {{
+    background: transparent;
+    width: 8px;
+    margin: 4px 0px 4px 0px;
+}}
+
+#sidebar QScrollBar::handle:vertical {{
+    background: {colors['sidebar_border']};
+    border-radius: 4px;
+    min-height: 24px;
+}}
+
+#sidebar QScrollBar::handle:vertical:hover {{
+    background: {colors['sidebar_indicator']};
+}}
+
+#sidebar QScrollBar::add-line:vertical,
+#sidebar QScrollBar::sub-line:vertical {{
+    height: 0px;
+    border: none;
+    background: none;
+}}
+
+#sidebar QScrollBar::add-page:vertical,
+#sidebar QScrollBar::sub-page:vertical {{
+    background: none;
+}}
+
 /* =========================
    MAIN CONTENT
    ========================= */
@@ -623,6 +660,32 @@ QFrame#fileGridItem:hover {{
     background-color: transparent;
     font-size: 10.5px;
     letter-spacing: 0.3px;
+}}
+
+QListWidget#organizeList {{
+    background-color: transparent;
+    border: none;
+    outline: none;
+}}
+
+QListWidget#organizeList::item {{
+    background-color: {colors['surface']};
+    border: 1px solid {colors['border']};
+    border-radius: 12px;
+    padding: 6px;
+    color: {colors['text_secondary']};
+    font-family: "Roboto Medium";
+    font-size: 11.5px;
+}}
+
+QListWidget#organizeList::item:hover {{
+    border: 1px solid {colors['border_strong']};
+}}
+
+QListWidget#organizeList::item:selected {{
+    border: 2px solid {colors['accent']};
+    background-color: {colors['accent_soft']};
+    color: {colors['accent']};
 }}
 
 /* =========================

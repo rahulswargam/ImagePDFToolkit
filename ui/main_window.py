@@ -20,13 +20,28 @@ from ui.components.nav import NavBreadcrumb, NavItem
 from ui.components.scroll import SmoothScrollArea
 from ui.components.feedback import Toast
 from ui.pages.home_page import IMAGE_EXTENSIONS, HomePage
+from ui.pages.compare_pdf_page import ComparePdfPage
+from ui.pages.compress_pdf_page import CompressPdfPage
+from ui.pages.crop_pdf_page import CropPdfPage
+from ui.pages.extract_pages_page import ExtractPagesPage
 from ui.pages.image_resizer_page import ImageResizerPage
 from ui.pages.jpg_to_pdf_page import JpgToPdfPage
 from ui.pages.lock_pdf_page import LockPdfPage
+from ui.pages.merge_pdf_page import MergePdfPage
+from ui.pages.organize_pdf_page import OrganizePdfPage
+from ui.pages.page_numbers_page import PageNumbersPage
+from ui.pages.pdf_forms_page import PdfFormsPage
 from ui.pages.pdf_to_jpg_page import PdfToJpgPage
 from ui.pages.png_to_jpg_page import PngToJpgPage
+from ui.pages.redact_pdf_page import RedactPdfPage
+from ui.pages.remove_pages_page import RemovePagesPage
+from ui.pages.repair_pdf_page import RepairPdfPage
+from ui.pages.rotate_pdf_page import RotatePdfPage
 from ui.pages.settings_page import SettingsPage
+from ui.pages.sign_pdf_page import SignPdfPage
+from ui.pages.split_pdf_page import SplitPdfPage
 from ui.pages.unlock_pdf_page import UnlockPdfPage
+from ui.pages.watermark_page import WatermarkPage
 from ui.styles import DARK_STYLE, LIGHT_STYLE
 from version import APP_VERSION
 
@@ -37,16 +52,52 @@ ICON_PATH = os.path.join(BASE_DIR, "assets", "icons", "app.ico")
 IMAGE_TOOLS = [
     ("resize", "Image Resizer", "Compress images down to a target file size.", ImageResizerPage),
     ("repeat", "PNG → JPG", "Convert PNG images into JPG format.", PngToJpgPage),
+]
+
+ORGANIZE_TOOLS = [
+    ("merge", "Merge PDF", "Combine multiple PDFs into one document.", MergePdfPage),
+    ("split", "Split PDF", "Split a PDF into separate single-page files.", SplitPdfPage),
+    ("file-minus", "Remove Pages", "Delete specific pages from a PDF.", RemovePagesPage),
+    ("file-extract", "Extract Pages", "Pull specific pages into a new PDF.", ExtractPagesPage),
+    ("grid", "Organize PDF", "Reorder, rotate, or delete pages visually.", OrganizePdfPage),
+]
+
+OPTIMIZE_TOOLS = [
+    ("minimize", "Compress PDF", "Shrink PDF file size without losing quality.", CompressPdfPage),
+    ("file-pulse", "Repair PDF", "Fix corrupted or malformed PDF files.", RepairPdfPage),
+]
+
+CONVERT_TOOLS = [
     ("layers", "JPG → PDF", "Convert one or multiple JPG images into a PDF.", JpgToPdfPage),
-]
-
-PDF_TOOLS = [
     ("image", "PDF → JPG", "Convert PDF pages into high-quality JPG images.", PdfToJpgPage),
-    ("lock", "Lock PDF", "Protect your PDF document with a password.", LockPdfPage),
-    ("unlock", "Unlock PDF", "Remove password protection from a PDF.", UnlockPdfPage),
 ]
 
-ALL_TOOLS = IMAGE_TOOLS + PDF_TOOLS
+EDIT_TOOLS = [
+    ("rotate-cw", "Rotate PDF", "Rotate every page of a PDF.", RotatePdfPage),
+    ("hash", "Add Page Numbers", "Stamp page numbers onto a PDF.", PageNumbersPage),
+    ("droplet", "Add Watermark", "Overlay a text watermark across a PDF.", WatermarkPage),
+    ("crop", "Crop PDF", "Crop the margins of every page.", CropPdfPage),
+    ("clipboard", "PDF Forms", "Fill in a PDF's fillable form fields.", PdfFormsPage),
+]
+
+SECURITY_TOOLS = [
+    ("lock", "Protect PDF", "Protect your PDF document with a password.", LockPdfPage),
+    ("unlock", "Unlock PDF", "Remove password protection from a PDF.", UnlockPdfPage),
+    ("edit-3", "Sign PDF", "Stamp a visual signature onto a PDF.", SignPdfPage),
+    ("eye-off", "Redact PDF", "Permanently black out sensitive text.", RedactPdfPage),
+    ("columns", "Compare PDF", "Find text differences between two PDFs.", ComparePdfPage),
+]
+
+NAV_SECTIONS = [
+    ("IMAGE", IMAGE_TOOLS),
+    ("ORGANIZE PDF", ORGANIZE_TOOLS),
+    ("OPTIMIZE PDF", OPTIMIZE_TOOLS),
+    ("CONVERT PDF", CONVERT_TOOLS),
+    ("EDIT PDF", EDIT_TOOLS),
+    ("PDF SECURITY", SECURITY_TOOLS),
+]
+
+ALL_TOOLS = IMAGE_TOOLS + ORGANIZE_TOOLS + OPTIMIZE_TOOLS + CONVERT_TOOLS + EDIT_TOOLS + SECURITY_TOOLS
 
 COPYRIGHT_TEXT = "© 2026 Rahul Swargam\nMIT License"
 
@@ -139,21 +190,30 @@ class MainWindow(QMainWindow):
         self.home_button.clicked.connect(self.show_home)
         sidebar_layout.addWidget(self.home_button)
 
-        sidebar_layout.addWidget(self._section_label("IMAGE"))
+        # The tool list is long enough now (six categories) that it needs to
+        # scroll independently of Home/Settings/footer, which stay pinned.
+        nav_scroll = SmoothScrollArea()
+        nav_scroll.setWidgetResizable(True)
+        nav_scroll.setFrameShape(QFrame.Shape.NoFrame)
+        nav_scroll.setObjectName("sidebarNavScroll")
+        nav_scroll.viewport().setObjectName("sidebarNavViewport")
 
-        for icon_name, title_text, description, page_class in IMAGE_TOOLS:
-            sidebar_layout.addWidget(
-                self._build_tool_nav_item(icon_name, title_text, description, page_class)
-            )
+        nav_list = QWidget()
+        nav_list.setObjectName("sidebarNavViewport")
+        nav_list_layout = QVBoxLayout(nav_list)
+        nav_list_layout.setContentsMargins(0, 0, 0, 0)
+        nav_list_layout.setSpacing(2)
 
-        sidebar_layout.addWidget(self._section_label("PDF"))
+        for section_name, tools in NAV_SECTIONS:
+            nav_list_layout.addWidget(self._section_label(section_name))
+            for icon_name, title_text, description, page_class in tools:
+                nav_list_layout.addWidget(
+                    self._build_tool_nav_item(icon_name, title_text, description, page_class)
+                )
 
-        for icon_name, title_text, description, page_class in PDF_TOOLS:
-            sidebar_layout.addWidget(
-                self._build_tool_nav_item(icon_name, title_text, description, page_class)
-            )
-
-        sidebar_layout.addStretch()
+        nav_list_layout.addStretch()
+        nav_scroll.setWidget(nav_list)
+        sidebar_layout.addWidget(nav_scroll, 1)
 
         self.settings_button = self._build_nav_item("settings", "Settings")
         self.settings_button.clicked.connect(self.open_settings_page)
@@ -226,7 +286,7 @@ class MainWindow(QMainWindow):
         scroll_area.setFrameShape(QFrame.Shape.NoFrame)
         scroll_area.viewport().setObjectName("scrollViewport")
 
-        page = HomePage(self.notify, self.open_tool, self.open_dropped_files, ALL_TOOLS)
+        page = HomePage(self.notify, self.open_tool, self.open_dropped_files, NAV_SECTIONS)
         page.setObjectName("scrollViewport")
         scroll_area.setWidget(page)
 

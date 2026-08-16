@@ -29,6 +29,24 @@ def render_pdf_thumbnail(path, max_size=200):
         return None
 
 
+def render_pdf_page_thumbnail(path, page_index, max_size=200):
+    """Renders a single page of a PDF to a QPixmap, or None if it can't be read."""
+
+    try:
+        doc = pymupdf.open(path)
+        page = doc[page_index]
+        rect = page.rect
+        zoom = max_size / max(rect.width, rect.height, 1)
+        matrix = pymupdf.Matrix(zoom, zoom)
+        pixmap = page.get_pixmap(matrix=matrix, alpha=False)
+        image = QImage(pixmap.samples, pixmap.width, pixmap.height, pixmap.stride, QImage.Format.Format_RGB888)
+        qpixmap = QPixmap.fromImage(image.copy())
+        doc.close()
+        return qpixmap
+    except Exception:
+        return None
+
+
 def pdf_meta_text(path):
     try:
         size_text = format_file_size(os.path.getsize(path))
