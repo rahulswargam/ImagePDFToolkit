@@ -19,7 +19,7 @@ class MergePdfPage(QWidget):
 
         self.notify = notify
         self.input_paths = []
-        self._last_output_folder = None
+        self._last_output_path = None
 
         self.setup_ui()
 
@@ -129,7 +129,7 @@ class MergePdfPage(QWidget):
 
         try:
             output_path = merge_pdfs(self.input_paths)
-            self._last_output_folder = os.path.dirname(output_path)
+            self._last_output_path = output_path
 
             self.merge_button.set_processing(False)
             self.processing_bar.hide()
@@ -138,7 +138,7 @@ class MergePdfPage(QWidget):
                 self,
                 "Processing complete",
                 f"{len(self.input_paths)} PDFs merged into one document.",
-                open_folder=self._open_output_folder,
+                open_file=self._open_output_file,
             )
 
         except Exception as error:
@@ -146,6 +146,6 @@ class MergePdfPage(QWidget):
             self.processing_bar.hide()
             CompletionDialog.error(self, "Processing Failed", f"Unable to merge these PDFs.\n\n{error}")
 
-    def _open_output_folder(self):
-        if self._last_output_folder and os.path.isdir(self._last_output_folder):
-            os.startfile(self._last_output_folder)
+    def _open_output_file(self):
+        if self._last_output_path and os.path.isfile(self._last_output_path):
+            os.startfile(self._last_output_path)

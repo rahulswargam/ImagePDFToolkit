@@ -145,7 +145,7 @@ class JpgToPdfPage(QWidget):
                 self,
                 "Processing complete",
                 f"{count} {plural} converted into a PDF.",
-                open_folder=self._open_output_folder,
+                open_file=self._open_output_file,
             )
             return
 
@@ -154,6 +154,6 @@ class JpgToPdfPage(QWidget):
             self.processing_bar.hide()
             CompletionDialog.error(self, "Processing Failed", f"Could not create the PDF.\n\n{error}")
 
-    def _open_output_folder(self):
-        if self._last_output_path and os.path.isdir(os.path.dirname(self._last_output_path)):
-            os.startfile(os.path.dirname(self._last_output_path))
+    def _open_output_file(self):
+        if self._last_output_path and os.path.isfile(self._last_output_path):
+            os.startfile(self._last_output_path)

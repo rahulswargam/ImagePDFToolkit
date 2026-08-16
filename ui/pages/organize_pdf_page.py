@@ -26,6 +26,14 @@ EXTENSIONS = (".pdf",)
 _ACCENT = "#ef4444"
 _ICON_MUTED = "#9397a8"
 THUMB_SIZE = 130
+# The grid cell must be larger than the icon alone to leave room for the
+# QSS item border/padding and the page-number label Qt draws below the
+# icon in IconMode. Without an explicit, uniform grid, Qt's per-item
+# layout drifts during a drag (items visually overlap/jump) because the
+# stylesheet's box model (padding, border) isn't reflected in Qt's own
+# size-hint math for IconMode cells.
+GRID_CELL_WIDTH = THUMB_SIZE + 40
+GRID_CELL_HEIGHT = int(THUMB_SIZE * 1.3) + 70
 
 
 class OrganizePdfPage(QWidget):
@@ -36,7 +44,7 @@ class OrganizePdfPage(QWidget):
 
         self.notify = notify
         self.input_path = None
-        self._last_output_folder = None
+        self._last_output_path = None
 
         self.setup_ui()
 
@@ -93,7 +101,9 @@ class OrganizePdfPage(QWidget):
         self.page_list.setDragDropMode(QAbstractItemView.DragDropMode.InternalMove)
         self.page_list.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
         self.page_list.setIconSize(QSize(THUMB_SIZE, int(THUMB_SIZE * 1.3)))
-        self.page_list.setSpacing(10)
+        self.page_list.setUniformItemSizes(True)
+        self.page_list.setGridSize(QSize(GRID_CELL_WIDTH, GRID_CELL_HEIGHT))
+        self.page_list.setSpacing(0)
         self.page_list.setMinimumHeight(280)
         main_layout.addWidget(self.page_list)
 
@@ -193,7 +203,7 @@ class OrganizePdfPage(QWidget):
 
         try:
             output_path = reorder_pdf(self.input_path, page_order, rotations)
-            self._last_output_folder = os.path.dirname(output_path)
+            self._last_output_path = output_path
 
             self.apply_button.set_processing(False)
             self.processing_bar.hide()
@@ -202,7 +212,7 @@ class OrganizePdfPage(QWidget):
                 self,
                 "Processing complete",
                 "PDF organized successfully.",
-                open_folder=self._open_output_folder,
+                open_file=self._open_output_file,
             )
 
         except Exception as error:
@@ -210,6 +220,6 @@ class OrganizePdfPage(QWidget):
             self.processing_bar.hide()
             CompletionDialog.error(self, "Processing Failed", f"Unable to save changes.\n\n{error}")
 
-    def _open_output_folder(self):
-        if self._last_output_folder and os.path.isdir(self._last_output_folder):
-            os.startfile(self._last_output_folder)
+    def _open_output_file(self):
+        if self._last_output_path and os.path.isfile(self._last_output_path):
+            os.startfile(self._last_output_path)

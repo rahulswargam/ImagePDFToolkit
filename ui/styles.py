@@ -670,7 +670,7 @@ QListWidget#organizeList {{
 
 QListWidget#organizeList::item {{
     background-color: {colors['surface']};
-    border: 1px solid {colors['border']};
+    border: 2px solid transparent;
     border-radius: 12px;
     padding: 6px;
     color: {colors['text_secondary']};
@@ -679,7 +679,7 @@ QListWidget#organizeList::item {{
 }}
 
 QListWidget#organizeList::item:hover {{
-    border: 1px solid {colors['border_strong']};
+    border: 2px solid {colors['border_strong']};
 }}
 
 QListWidget#organizeList::item:selected {{

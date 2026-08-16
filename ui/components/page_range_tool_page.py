@@ -34,7 +34,7 @@ class PageRangeToolPage(QWidget):
         self.notify = notify
         self.input_path = None
         self.page_count = 0
-        self._last_output_folder = None
+        self._last_output_path = None
         self._preview_card = None
 
         self.setup_ui()
@@ -164,7 +164,7 @@ class PageRangeToolPage(QWidget):
 
         try:
             output_path = self.process(self.input_path, pages)
-            self._last_output_folder = os.path.dirname(output_path)
+            self._last_output_path = output_path
 
             self.apply_button.set_processing(False)
             self.processing_bar.hide()
@@ -173,7 +173,7 @@ class PageRangeToolPage(QWidget):
                 self,
                 "Processing complete",
                 self.success_message(output_path),
-                open_folder=self._open_output_folder,
+                open_file=self._open_output_file,
             )
 
         except Exception as error:
@@ -181,6 +181,6 @@ class PageRangeToolPage(QWidget):
             self.processing_bar.hide()
             CompletionDialog.error(self, "Processing Failed", f"Unable to process this PDF.\n\n{error}")
 
-    def _open_output_folder(self):
-        if self._last_output_folder and os.path.isdir(self._last_output_folder):
-            os.startfile(self._last_output_folder)
+    def _open_output_file(self):
+        if self._last_output_path and os.path.isfile(self._last_output_path):
+            os.startfile(self._last_output_path)

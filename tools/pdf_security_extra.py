@@ -2,10 +2,13 @@ import difflib
 import os
 
 import pymupdf
+from PIL import Image
 
 from tools.image_resizer import get_output_folder
 
 _MARGIN = 40
+_BASE_SIGNATURE_FONT_SIZE = 22
+_MAX_IMAGE_SIGNATURE_WIDTH_FRACTION = 0.4
 
 
 def _unique_path(output_folder, base_name, suffix, ext):
@@ -17,11 +20,22 @@ def _unique_path(output_folder, base_name, suffix, ext):
     return output_path
 
 
-def sign_pdf(input_path, signer_name, page_target="last", position="bottom-right"):
+def _target_pages(document, page_target):
+    if page_target == "first":
+        return [document[0]]
+    if page_target == "all":
+        return list(document)
+    return [document[-1]]
+
+
+def sign_pdf(input_path, signer_name, page_target="last", position="bottom-right", scale_percent=100):
     """
     Stamps a visual signature (name in an italic script-style font, with a
     signature line) onto a PDF. This is a visual mark, not a legally-binding
     cryptographic digital signature.
+
+    `scale_percent` (10-100) scales the signature text/line size; 100% is
+    the largest, most legible size.
 
     Returns:
         output_path
@@ -33,19 +47,16 @@ def sign_pdf(input_path, signer_name, page_target="last", position="bottom-right
     if not signer_name:
         raise ValueError("Please enter a name to sign with.")
 
+    scale = max(10, min(int(scale_percent), 100)) / 100
+    name_font_size = max(6, round(_BASE_SIGNATURE_FONT_SIZE * scale))
+    caption_font_size = max(5, round(8 * scale))
+
     with pymupdf.open(input_path) as document:
 
-        if page_target == "first":
-            targets = [document[0]]
-        elif page_target == "all":
-            targets = list(document)
-        else:
-            targets = [document[-1]]
-
-        for page in targets:
+        for page in _target_pages(document, page_target):
             rect = page.rect
-            name_width = pymupdf.get_text_length(signer_name, fontname="heit", fontsize=22)
-            line_width = max(name_width + 20, 140)
+            name_width = pymupdf.get_text_length(signer_name, fontname="heit", fontsize=name_font_size)
+            line_width = max(name_width + 20, 140 * scale)
 
             if "left" in position:
                 x = rect.x0 + _MARGIN
@@ -57,8 +68,65 @@ def sign_pdf(input_path, signer_name, page_target="last", position="bottom-right
             y = rect.y1 - _MARGIN
 
             page.draw_line((x, y), (x + line_width, y), color=(0.4, 0.42, 0.48), width=0.8)
-            page.insert_text((x, y - 6), signer_name, fontname="heit", fontsize=22, color=(0.1, 0.1, 0.15))
-            page.insert_text((x, y + 12), "Signed electronically", fontname="helv", fontsize=8, color=(0.5, 0.52, 0.58))
+            page.insert_text(
+                (x, y - 6), signer_name, fontname="heit", fontsize=name_font_size, color=(0.1, 0.1, 0.15)
+            )
+            page.insert_text(
+                (x, y + caption_font_size + 4),
+                "Signed electronically",
+                fontname="helv",
+                fontsize=caption_font_size,
+                color=(0.5, 0.52, 0.58),
+            )
+
+        base_name = os.path.splitext(os.path.basename(input_path))[0]
+        output_path = _unique_path(get_output_folder(), base_name, "_signed", "pdf")
+        document.save(output_path, garbage=4, deflate=True)
+
+    return output_path
+
+
+def sign_pdf_with_image(input_path, image_path, page_target="last", position="bottom-right", scale_percent=100):
+    """
+    Stamps an uploaded signature image (e.g. a scanned handwritten
+    signature) onto a PDF, preserving its aspect ratio and transparency.
+
+    `scale_percent` (10-100) scales the signature's width as a fraction of
+    the page width; 100% is the largest allowed size.
+
+    Returns:
+        output_path
+    """
+
+    input_path = str(input_path)
+    scale = max(10, min(int(scale_percent), 100)) / 100
+
+    with Image.open(image_path) as source:
+        image_width, image_height = source.size
+
+    if image_width <= 0 or image_height <= 0:
+        raise ValueError("This image could not be read.")
+
+    aspect_ratio = image_height / image_width
+
+    with pymupdf.open(input_path) as document:
+
+        for page in _target_pages(document, page_target):
+            rect = page.rect
+            target_width = rect.width * _MAX_IMAGE_SIGNATURE_WIDTH_FRACTION * scale
+            target_height = target_width * aspect_ratio
+
+            if "left" in position:
+                x = rect.x0 + _MARGIN
+            elif "center" in position:
+                x = (rect.x0 + rect.x1) / 2 - target_width / 2
+            else:
+                x = rect.x1 - _MARGIN - target_width
+
+            y = rect.y1 - _MARGIN - target_height
+
+            image_rect = pymupdf.Rect(x, y, x + target_width, y + target_height)
+            page.insert_image(image_rect, filename=image_path, keep_proportion=True)
 
         base_name = os.path.splitext(os.path.basename(input_path))[0]
         output_path = _unique_path(get_output_folder(), base_name, "_signed", "pdf")

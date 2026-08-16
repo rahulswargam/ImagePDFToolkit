@@ -1,6 +1,8 @@
+import io
 import os
 
 import pymupdf
+from PIL import Image
 
 from tools.image_resizer import get_output_folder
 
@@ -79,9 +81,12 @@ def add_page_numbers(input_path, position="bottom-center", start_at=1, font_size
     return output_path
 
 
-def add_watermark(input_path, text, opacity=30, font_size=48, color="#999999"):
+def add_watermark(input_path, text, opacity=30, font_size=48, color="#999999", fontname="helv"):
     """
     Overlays a diagonal, semi-transparent text watermark across every page.
+
+    `fontname` is one of pymupdf's built-in base-14 font shorthands
+    (e.g. "helv", "hebo", "tiro", "tibo", "cour").
 
     Returns:
         output_path
@@ -103,18 +108,84 @@ def add_watermark(input_path, text, opacity=30, font_size=48, color="#999999"):
             center = rect.tl + (rect.br - rect.tl) / 2
             morph = (center, pymupdf.Matrix(45))
 
-            text_width = pymupdf.get_text_length(text, fontname="helv", fontsize=font_size)
+            text_width = pymupdf.get_text_length(text, fontname=fontname, fontsize=font_size)
             point = pymupdf.Point(center.x - text_width / 2, center.y + font_size * 0.35)
 
             page.insert_text(
                 point,
                 text,
-                fontname="helv",
+                fontname=fontname,
                 fontsize=font_size,
                 color=rgb,
                 fill_opacity=fill_opacity,
                 morph=morph,
             )
+
+        base_name = os.path.splitext(os.path.basename(input_path))[0]
+        output_path = _unique_pdf_path(get_output_folder(), base_name, "_watermarked")
+        document.save(output_path, garbage=4, deflate=True)
+
+    return output_path
+
+
+def add_image_watermark(input_path, image_path, opacity=30, scale_percent=50, position="center", rotation_degrees=0):
+    """
+    Overlays a semi-transparent image/logo watermark onto every page,
+    preserving aspect ratio and any existing transparency in the source
+    image (opacity is applied on top of it, not instead of it).
+
+    `scale_percent` (5-100) scales the watermark's width as a fraction of
+    the page width; 100% is the largest allowed size. `position` is one of
+    "center", "top-left", "top-right", "bottom-left", "bottom-right".
+
+    Returns:
+        output_path
+    """
+
+    input_path = str(input_path)
+    fill_opacity = max(1, min(int(opacity), 100)) / 100
+    scale = max(5, min(int(scale_percent), 100)) / 100
+    rotation_degrees = int(rotation_degrees) % 360
+
+    with Image.open(image_path) as source:
+        rgba = source.convert("RGBA")
+        alpha = rgba.getchannel("A").point(lambda value: int(value * fill_opacity))
+        rgba.putalpha(alpha)
+
+        if rotation_degrees:
+            rgba = rgba.rotate(rotation_degrees, expand=True, resample=Image.BICUBIC)
+
+        buffer = io.BytesIO()
+        rgba.save(buffer, "PNG")
+        image_bytes = buffer.getvalue()
+        image_width, image_height = rgba.size
+
+    if image_width <= 0 or image_height <= 0:
+        raise ValueError("This image could not be read.")
+
+    aspect_ratio = image_height / image_width
+
+    with pymupdf.open(input_path) as document:
+
+        for page in document:
+            rect = page.rect
+            target_width = rect.width * 0.5 * scale
+            target_height = target_width * aspect_ratio
+
+            if position == "top-left":
+                x, y = rect.x0 + _MARGIN, rect.y0 + _MARGIN
+            elif position == "top-right":
+                x, y = rect.x1 - _MARGIN - target_width, rect.y0 + _MARGIN
+            elif position == "bottom-left":
+                x, y = rect.x0 + _MARGIN, rect.y1 - _MARGIN - target_height
+            elif position == "bottom-right":
+                x, y = rect.x1 - _MARGIN - target_width, rect.y1 - _MARGIN - target_height
+            else:
+                x = (rect.x0 + rect.x1) / 2 - target_width / 2
+                y = (rect.y0 + rect.y1) / 2 - target_height / 2
+
+            image_rect = pymupdf.Rect(x, y, x + target_width, y + target_height)
+            page.insert_image(image_rect, stream=image_bytes, keep_proportion=True)
 
         base_name = os.path.splitext(os.path.basename(input_path))[0]
         output_path = _unique_pdf_path(get_output_folder(), base_name, "_watermarked")

@@ -21,7 +21,7 @@ class ImageResizerPage(QWidget):
 
         self.notify = notify
         self.input_paths = []
-        self._last_output_folder = None
+        self._last_output_path = None
 
         self.setup_ui()
 
@@ -189,7 +189,7 @@ class ImageResizerPage(QWidget):
 
         saved = 0
         failed = []
-        last_output_folder = None
+        last_output_path = None
         original_total_bytes = 0
         achieved_total_bytes = 0
 
@@ -210,7 +210,7 @@ class ImageResizerPage(QWidget):
                 achieved_bytes = achieved_kb * 1024
                 achieved_total_bytes += achieved_bytes
                 saved += 1
-                last_output_folder = os.path.dirname(output_path)
+                last_output_path = output_path
 
             except Exception as error:
                 failed.append(f"{os.path.basename(input_path)}: {error}")
@@ -220,7 +220,7 @@ class ImageResizerPage(QWidget):
 
         self.compress_button.set_processing(False)
         self.processing_bar.hide()
-        self._last_output_folder = last_output_folder
+        self._last_output_path = last_output_path
 
         if saved:
             plural = "image" if saved == 1 else "images"
@@ -228,7 +228,7 @@ class ImageResizerPage(QWidget):
                 self,
                 "Processing complete",
                 f"{saved} {plural} compressed successfully.",
-                open_folder=self._open_output_folder,
+                open_file=self._open_output_file,
             )
 
         if failed:
@@ -242,6 +242,6 @@ class ImageResizerPage(QWidget):
             message += f"\n…and {remaining} more."
         CompletionDialog.error(self, title, message)
 
-    def _open_output_folder(self):
-        if self._last_output_folder and os.path.isdir(self._last_output_folder):
-            os.startfile(self._last_output_folder)
+    def _open_output_file(self):
+        if self._last_output_path and os.path.isfile(self._last_output_path):
+            os.startfile(self._last_output_path)
