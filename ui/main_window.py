@@ -252,7 +252,7 @@ class MainWindow(QMainWindow):
         return label
 
     def _build_nav_item(self, icon_name, text, checked=False):
-        item = NavItem(icon_name, text)
+        item = NavItem(icon_name, text, dark_mode=self.dark_mode)
         item.setChecked(checked)
         self.nav_group.addButton(item)
         return item
@@ -406,6 +406,13 @@ class MainWindow(QMainWindow):
         app = QApplication.instance()
         if app:
             app.setStyleSheet(stylesheet)
+
+        # Nav icons are tinted pixmaps, not QSS-driven, so they need an
+        # explicit refresh now that the sidebar follows the app theme.
+        # (nav_buttons already includes settings_button, but not home_button.)
+        self.home_button.set_dark_mode(self.dark_mode)
+        for button in self.nav_buttons.values():
+            button.set_dark_mode(self.dark_mode)
 
         _apply_dark_title_bar(int(self.winId()), self.dark_mode)
 

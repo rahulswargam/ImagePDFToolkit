@@ -12,7 +12,6 @@ from ui.components.pdf_preview import render_pdf_page_thumbnail
 from ui.components.workspace import DropWorkspace
 from ui.font_registry import qt_family_for
 
-_ROTATIONS = [("0°", 0), ("45°", 45), ("-45° (315°)", 315), ("90°", 90), ("180°", 180), ("270°", 270)]
 _IMAGE_EXTENSIONS = (".png", ".jpg", ".jpeg", ".webp")
 _ACCENT = "#ef4444"
 _FONT_OPTIONS = [(spec["label"], key) for key, spec in WATERMARK_FONTS.items()]
@@ -24,7 +23,10 @@ class WatermarkPage(BatchPdfToolPage):
 
     BUTTON_LABEL = "Add Watermark"
     PROCESSING_VERB = "Watermarking"
-    NOTE_TEXT = "Drag the box on the preview to position the watermark, and drag a corner to resize it."
+    NOTE_TEXT = (
+        "Drag the box on the preview to position the watermark, drag a corner to resize it, "
+        "and drag the handle above it to rotate — or type an exact angle below."
+    )
 
     def build_settings(self, layout):
 
@@ -87,7 +89,8 @@ class WatermarkPage(BatchPdfToolPage):
         row = QHBoxLayout()
         row.setSpacing(16)
 
-        self.rotation_field = LabeledComboBox("Rotation", _ROTATIONS)
+        self.rotation_field = NumberField("Rotation", 0, 359, 0, suffix="°")
+        self.rotation_field.valueChanged.connect(self._on_rotation_field_changed)
         row.addWidget(self.rotation_field, 1)
 
         self.size_field = NumberField("Size", 5, 100, 40, suffix="%")
@@ -99,12 +102,14 @@ class WatermarkPage(BatchPdfToolPage):
 
         card_layout.addLayout(row)
 
-        preview_label = QLabel("Drag to position, drag a corner to resize")
+        preview_label = QLabel("Drag to position, drag a corner to resize, drag the handle to rotate")
         preview_label.setObjectName("fieldLabel")
         card_layout.addWidget(preview_label)
 
         self.canvas = PdfOverlayCanvas()
+        self.canvas.set_rotation_enabled(True)
         self.canvas.geometryChanged.connect(self._on_canvas_geometry_changed)
+        self.canvas.rotationChanged.connect(self._on_canvas_rotation_changed)
         card_layout.addWidget(self.canvas)
 
         layout.addWidget(card)
@@ -149,6 +154,14 @@ class WatermarkPage(BatchPdfToolPage):
         self.size_field.setValue(round(w * 100))
         self.size_field.spin.blockSignals(False)
 
+    def _on_rotation_field_changed(self, value):
+        self.canvas.set_rotation(value)
+
+    def _on_canvas_rotation_changed(self, degrees):
+        self.rotation_field.spin.blockSignals(True)
+        self.rotation_field.setValue(round(degrees))
+        self.rotation_field.spin.blockSignals(False)
+
     def refresh_summary(self):
         super().refresh_summary()
         self._refresh_canvas_page()
@@ -174,6 +187,7 @@ class WatermarkPage(BatchPdfToolPage):
 
     def process_one(self, input_path):
         x, y, w, h = self.canvas.box()
+        rotation = self.canvas.rotation()
         if self._mode_index == 1:
             return add_image_watermark(
                 input_path,
@@ -182,7 +196,7 @@ class WatermarkPage(BatchPdfToolPage):
                 x * 100,
                 y * 100,
                 w * 100,
-                self.rotation_field.value(),
+                rotation,
             )
         return add_watermark(
             input_path,
@@ -193,7 +207,7 @@ class WatermarkPage(BatchPdfToolPage):
             y_percent=y * 100,
             width_percent=w * 100,
             height_percent=h * 100,
-            rotation_degrees=self.rotation_field.value(),
+            rotation_degrees=rotation,
         )
 
     def success_message(self, saved, total):
