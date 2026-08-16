@@ -201,7 +201,11 @@ def add_watermark(
             text_width = _measure_text(text, fontname, fontfile, font_size)
             center = pymupdf.Point(box_x + box_width / 2, box_y + box_height / 2)
             point = pymupdf.Point(center.x - text_width / 2, center.y + font_size * 0.35)
-            morph = (center, pymupdf.Matrix(rotation_degrees)) if rotation_degrees else None
+            # pymupdf.Matrix(theta) rotates counterclockwise for this
+            # insert_text/morph usage while the on-screen preview rotates
+            # clockwise for the same positive angle — negate to match what
+            # the user actually dragged.
+            morph = (center, pymupdf.Matrix(-rotation_degrees)) if rotation_degrees else None
 
             page.insert_text(
                 point,
@@ -247,7 +251,10 @@ def add_image_watermark(input_path, image_path, opacity=30, x_percent=25, y_perc
         rgba.putalpha(alpha)
 
         if rotation_degrees:
-            rgba = rgba.rotate(rotation_degrees, expand=True, resample=Image.BICUBIC)
+            # PIL's rotate() is counterclockwise-positive while the on-screen
+            # preview rotates clockwise for the same positive angle — negate
+            # to match what the user actually dragged.
+            rgba = rgba.rotate(-rotation_degrees, expand=True, resample=Image.BICUBIC)
 
         buffer = io.BytesIO()
         rgba.save(buffer, "PNG")
