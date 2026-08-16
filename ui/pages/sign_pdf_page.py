@@ -4,7 +4,7 @@ from PySide6.QtCore import Qt
 from PySide6.QtGui import QPixmap
 from PySide6.QtWidgets import QFileDialog, QFrame, QHBoxLayout, QLabel, QVBoxLayout, QWidget
 
-from tools.pdf_security_extra import sign_pdf, sign_pdf_with_image
+from tools.pdf_security_extra import DEFAULT_SIGNATURE_FONT, SIGNATURE_FONTS, sign_pdf, sign_pdf_with_image
 from ui.components.batch_pdf_page import BatchPdfToolPage
 from ui.components.feedback import CompletionDialog
 from ui.components.inputs import LabeledComboBox, LabeledLineEdit, SegmentedControl
@@ -15,6 +15,8 @@ _POSITIONS = [("Bottom right", "bottom-right"), ("Bottom center", "bottom-center
 _SIZE_OPTIONS = [(f"{percent}%", percent) for percent in range(10, 101, 10)]
 _IMAGE_EXTENSIONS = (".png", ".jpg", ".jpeg", ".webp")
 _ACCENT = "#ef4444"
+_FONT_OPTIONS = [(spec["label"], key) for key, spec in SIGNATURE_FONTS.items()]
+_DEFAULT_FONT_INDEX = [key for _, key in _FONT_OPTIONS].index(DEFAULT_SIGNATURE_FONT)
 
 
 class SignPdfPage(BatchPdfToolPage):
@@ -45,8 +47,18 @@ class SignPdfPage(BatchPdfToolPage):
         self.mode_control.currentChanged.connect(self._on_mode_changed)
         card_layout.addWidget(self.mode_control)
 
+        self.type_widget = QWidget()
+        type_layout = QVBoxLayout(self.type_widget)
+        type_layout.setContentsMargins(0, 0, 0, 0)
+        type_layout.setSpacing(14)
+
         self.name_field = LabeledLineEdit("Your Name", "e.g. Ada Lovelace")
-        card_layout.addWidget(self.name_field)
+        type_layout.addWidget(self.name_field)
+
+        self.font_field = LabeledComboBox("Signature Style", _FONT_OPTIONS, current_index=_DEFAULT_FONT_INDEX)
+        type_layout.addWidget(self.font_field)
+
+        card_layout.addWidget(self.type_widget)
 
         self.image_widget = QWidget()
         image_layout = QVBoxLayout(self.image_widget)
@@ -94,7 +106,7 @@ class SignPdfPage(BatchPdfToolPage):
     def _on_mode_changed(self, index):
         self._mode_index = index
         is_image_mode = index == 1
-        self.name_field.setVisible(not is_image_mode)
+        self.type_widget.setVisible(not is_image_mode)
         self.image_widget.setVisible(is_image_mode)
 
     def _browse_signature_image(self):
@@ -143,6 +155,7 @@ class SignPdfPage(BatchPdfToolPage):
             self.page_field.value(),
             self.position_field.value(),
             self.size_field.value(),
+            self.font_field.value(),
         )
 
     def success_message(self, saved, total):
