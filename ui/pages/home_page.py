@@ -1,6 +1,7 @@
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QFrame,
+    QGridLayout,
     QHBoxLayout,
     QLabel,
     QVBoxLayout,
@@ -14,6 +15,13 @@ from ui.components.workspace import DropWorkspace
 
 _ACCENT = "#ef4444"
 _ICON_MUTED = "#9397a8"
+
+
+def _display_name(section_name):
+    """Title-cases a sidebar section label for Home's headings, without
+    mangling "PDF" into "Pdf" the way str.title() would."""
+
+    return " ".join(word if word == "PDF" else word.capitalize() for word in section_name.split())
 
 IMAGE_EXTENSIONS = (".jpg", ".jpeg", ".png", ".webp", ".bmp")
 PDF_EXTENSIONS = (".pdf",)
@@ -90,15 +98,20 @@ class QuickActionRow(QFrame):
 
 class HomePage(QWidget):
     """Home / Tool Command Center: hero, one big drop workspace that
-    auto-routes dropped files, and Quick Actions."""
+    auto-routes dropped files, and a categorized tool grid.
 
-    def __init__(self, notify, open_tool, open_dropped_files, tools, parent=None):
+    `sections` is a list of (category_name, tools) pairs, where each
+    `tools` entry is (icon_name, title, description, page_class) — the
+    same shape used to build the sidebar, so Home mirrors it exactly.
+    """
+
+    def __init__(self, notify, open_tool, open_dropped_files, sections, parent=None):
         super().__init__(parent)
 
         self.notify = notify
         self.open_tool = open_tool
         self.open_dropped_files = open_dropped_files
-        self.tools = tools
+        self.sections = sections
 
         self.setup_ui()
 
@@ -149,24 +162,34 @@ class HomePage(QWidget):
         layout.addSpacing(28)
 
         # =========================
-        # QUICK ACTIONS
+        # TOOL CATEGORIES
         # =========================
 
-        section = QLabel("Quick Actions")
-        section.setObjectName("sectionHeading")
-        layout.addWidget(section)
-        layout.addSpacing(10)
+        for section_name, tools in self.sections:
 
-        for index, (icon_name, title_text, description, page_class) in enumerate(self.tools):
-            row = QuickActionRow(
-                icon_name,
-                title_text,
-                description,
-                lambda p=page_class, t=title_text, d=description: self.open_tool(p, t, d),
-                featured=(index == 0),
-            )
-            layout.addWidget(row)
-            layout.addSpacing(8)
+            heading = QLabel(_display_name(section_name))
+            heading.setObjectName("sectionHeading")
+            layout.addWidget(heading)
+            layout.addSpacing(10)
+
+            grid = QGridLayout()
+            grid.setHorizontalSpacing(12)
+            grid.setVerticalSpacing(8)
+            grid.setColumnStretch(0, 1)
+            grid.setColumnStretch(1, 1)
+
+            for index, (icon_name, title_text, description, page_class) in enumerate(tools):
+                row = QuickActionRow(
+                    icon_name,
+                    title_text,
+                    description,
+                    lambda p=page_class, t=title_text, d=description: self.open_tool(p, t, d),
+                )
+                grid_row, grid_col = divmod(index, 2)
+                grid.addWidget(row, grid_row, grid_col)
+
+            layout.addLayout(grid)
+            layout.addSpacing(22)
 
         layout.addStretch()
 

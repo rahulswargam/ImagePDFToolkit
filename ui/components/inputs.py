@@ -1,5 +1,6 @@
 from PySide6.QtCore import QSize, Qt, Signal
 from PySide6.QtWidgets import (
+    QComboBox,
     QFrame,
     QHBoxLayout,
     QLabel,
@@ -84,6 +85,60 @@ class NumberField(QWidget):
 
     def setValue(self, value):
         self.spin.setValue(value)
+
+
+class LabeledLineEdit(QWidget):
+    """A labeled single-line text input, for free-text tool settings
+    (watermark text, signer name, redaction search term, etc.)."""
+
+    def __init__(self, label, placeholder="", parent=None):
+        super().__init__(parent)
+
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(8)
+
+        label_widget = QLabel(label)
+        label_widget.setObjectName("fieldLabel")
+        layout.addWidget(label_widget)
+
+        self.edit = QLineEdit()
+        self.edit.setPlaceholderText(placeholder)
+        layout.addWidget(self.edit)
+
+    def text(self):
+        return self.edit.text()
+
+    def setText(self, value):
+        self.edit.setText(value)
+
+    def clear(self):
+        self.edit.clear()
+
+
+class LabeledComboBox(QWidget):
+    """A labeled dropdown of (display label, value) options."""
+
+    def __init__(self, label, options, current_index=0, parent=None):
+        super().__init__(parent)
+
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(8)
+
+        label_widget = QLabel(label)
+        label_widget.setObjectName("fieldLabel")
+        layout.addWidget(label_widget)
+
+        self.combo = QComboBox()
+        self.combo.setCursor(Qt.CursorShape.PointingHandCursor)
+        for option_label, option_value in options:
+            self.combo.addItem(option_label, option_value)
+        self.combo.setCurrentIndex(current_index)
+        layout.addWidget(self.combo)
+
+    def value(self):
+        return self.combo.currentData()
 
 
 class PasswordField(QWidget):

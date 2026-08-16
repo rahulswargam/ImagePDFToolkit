@@ -1,0 +1,218 @@
+import os
+
+from pypdf import PdfReader, PdfWriter
+
+from tools.image_resizer import get_output_folder
+
+
+def _unique_path(output_folder, base_name, suffix, ext=".pdf"):
+    output_path = os.path.join(output_folder, f"{base_name}{suffix}{ext}")
+    counter = 1
+    while os.path.exists(output_path):
+        output_path = os.path.join(output_folder, f"{base_name}{suffix}_{counter}{ext}")
+        counter += 1
+    return output_path
+
+
+def get_page_count(input_path):
+    return len(PdfReader(str(input_path)).pages)
+
+
+def parse_page_range(spec, page_count):
+    """
+    Parses a 1-indexed page range string like "1,3,5-8" into a sorted list
+    of 0-indexed page numbers, validated against page_count.
+    """
+
+    spec = (spec or "").strip()
+
+    if not spec:
+        raise ValueError("Please enter at least one page number.")
+
+    pages = set()
+
+    for token in spec.split(","):
+        token = token.strip()
+
+        if not token:
+            continue
+
+        if "-" in token:
+            parts = token.split("-")
+            if len(parts) != 2:
+                raise ValueError(f"'{token}' is not a valid page or range.")
+            start_text, end_text = parts
+            if not (start_text.strip().isdigit() and end_text.strip().isdigit()):
+                raise ValueError(f"'{token}' is not a valid page or range.")
+            start, end = int(start_text), int(end_text)
+            if start > end:
+                start, end = end, start
+            for page in range(start, end + 1):
+                pages.add(page)
+        else:
+            if not token.isdigit():
+                raise ValueError(f"'{token}' is not a valid page number.")
+            pages.add(int(token))
+
+    if not pages:
+        raise ValueError("Please enter at least one page number.")
+
+    for page in pages:
+        if page < 1 or page > page_count:
+            raise ValueError(f"Page {page} is out of range (this PDF has {page_count} pages).")
+
+    return sorted(page - 1 for page in pages)
+
+
+def merge_pdfs(input_paths):
+    """
+    Combines multiple PDFs into one, in the given order.
+
+    Returns:
+        output_path
+    """
+
+    if len(input_paths) < 2:
+        raise ValueError("Select at least 2 PDFs to merge.")
+
+    writer = PdfWriter()
+
+    for input_path in input_paths:
+        reader = PdfReader(str(input_path))
+        for page in reader.pages:
+            writer.add_page(page)
+
+    output_path = _unique_path(get_output_folder(), "merged", "")
+
+    with open(output_path, "wb") as output_file:
+        writer.write(output_file)
+
+    return output_path
+
+
+def split_pdf(input_path):
+    """
+    Splits a PDF into one single-page PDF per page, saved into a subfolder
+    named after the source file.
+
+    Returns:
+        list of output file paths, in page order
+    """
+
+    input_path = str(input_path)
+    reader = PdfReader(input_path)
+    page_count = len(reader.pages)
+
+    if page_count < 2:
+        raise ValueError("This PDF only has one page — nothing to split.")
+
+    base_name = os.path.splitext(os.path.basename(input_path))[0]
+    output_folder = os.path.join(get_output_folder(), base_name)
+    os.makedirs(output_folder, exist_ok=True)
+
+    width = len(str(page_count))
+    output_paths = []
+
+    for index, page in enumerate(reader.pages, start=1):
+        writer = PdfWriter()
+        writer.add_page(page)
+
+        output_path = os.path.join(output_folder, f"{base_name}_page_{index:0{width}}.pdf")
+        counter = 1
+        while os.path.exists(output_path):
+            output_path = os.path.join(output_folder, f"{base_name}_page_{index:0{width}}_{counter}.pdf")
+            counter += 1
+
+        with open(output_path, "wb") as output_file:
+            writer.write(output_file)
+
+        output_paths.append(output_path)
+
+    return output_paths
+
+
+def remove_pages(input_path, pages_zero_indexed):
+    """
+    Writes a copy of the PDF with the given 0-indexed pages removed.
+
+    Returns:
+        output_path
+    """
+
+    input_path = str(input_path)
+    reader = PdfReader(input_path)
+    to_remove = set(pages_zero_indexed)
+
+    if len(to_remove) >= len(reader.pages):
+        raise ValueError("Cannot remove every page — the result would be empty.")
+
+    writer = PdfWriter()
+    for index, page in enumerate(reader.pages):
+        if index not in to_remove:
+            writer.add_page(page)
+
+    base_name = os.path.splitext(os.path.basename(input_path))[0]
+    output_path = _unique_path(get_output_folder(), base_name, "_edited")
+
+    with open(output_path, "wb") as output_file:
+        writer.write(output_file)
+
+    return output_path
+
+
+def extract_pages(input_path, pages_zero_indexed):
+    """
+    Writes a new PDF containing only the given 0-indexed pages, in order.
+
+    Returns:
+        output_path
+    """
+
+    input_path = str(input_path)
+    reader = PdfReader(input_path)
+
+    writer = PdfWriter()
+    for index in sorted(set(pages_zero_indexed)):
+        writer.add_page(reader.pages[index])
+
+    base_name = os.path.splitext(os.path.basename(input_path))[0]
+    output_path = _unique_path(get_output_folder(), base_name, "_extracted")
+
+    with open(output_path, "wb") as output_file:
+        writer.write(output_file)
+
+    return output_path
+
+
+def reorder_pdf(input_path, page_order_zero_indexed, rotations=None):
+    """
+    Writes a new PDF with pages taken from the original in `page_order_zero_indexed`
+    order (pages not listed are dropped — this is how page deletion is expressed),
+    with an optional extra rotation (degrees, keyed by original 0-indexed page
+    number) applied to each.
+
+    Returns:
+        output_path
+    """
+
+    input_path = str(input_path)
+    reader = PdfReader(input_path)
+    rotations = rotations or {}
+
+    if not page_order_zero_indexed:
+        raise ValueError("At least one page must remain.")
+
+    writer = PdfWriter()
+    for original_index in page_order_zero_indexed:
+        new_page = writer.add_page(reader.pages[original_index])
+        angle = rotations.get(original_index, 0)
+        if angle:
+            new_page.rotate(angle)
+
+    base_name = os.path.splitext(os.path.basename(input_path))[0]
+    output_path = _unique_path(get_output_folder(), base_name, "_organized")
+
+    with open(output_path, "wb") as output_file:
+        writer.write(output_file)
+
+    return output_path
