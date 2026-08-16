@@ -62,6 +62,46 @@ SIGNATURE_FONTS = {
         "file": os.path.join(_SIGNATURE_FONTS_DIR, "Yellowtail-Regular.ttf"),
         "fallback": "heit",
     },
+    "marck_script": {
+        "label": "Marck Script",
+        "file": os.path.join(_SIGNATURE_FONTS_DIR, "MarckScript-Regular.ttf"),
+        "fallback": "heit",
+    },
+    "parisienne": {
+        "label": "Parisienne",
+        "file": os.path.join(_SIGNATURE_FONTS_DIR, "Parisienne-Regular.ttf"),
+        "fallback": "heit",
+    },
+    "tangerine": {
+        "label": "Tangerine",
+        "file": os.path.join(_SIGNATURE_FONTS_DIR, "Tangerine-Regular.ttf"),
+        "fallback": "heit",
+    },
+    "herr_von_muellerhoff": {
+        "label": "Herr Von Muellerhoff",
+        "file": os.path.join(_SIGNATURE_FONTS_DIR, "HerrVonMuellerhoff-Regular.ttf"),
+        "fallback": "heit",
+    },
+    "rouge_script": {
+        "label": "Rouge Script",
+        "file": os.path.join(_SIGNATURE_FONTS_DIR, "RougeScript-Regular.ttf"),
+        "fallback": "heit",
+    },
+    "norican": {
+        "label": "Norican",
+        "file": os.path.join(_SIGNATURE_FONTS_DIR, "Norican-Regular.ttf"),
+        "fallback": "heit",
+    },
+    "meddon": {
+        "label": "Meddon",
+        "file": os.path.join(_SIGNATURE_FONTS_DIR, "Meddon-Regular.ttf"),
+        "fallback": "heit",
+    },
+    "kristi": {
+        "label": "Kristi",
+        "file": os.path.join(_SIGNATURE_FONTS_DIR, "Kristi-Regular.ttf"),
+        "fallback": "heit",
+    },
 }
 DEFAULT_SIGNATURE_FONT = "great_vibes"
 
