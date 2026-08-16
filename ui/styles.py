@@ -262,21 +262,6 @@ QWidget#sidebarNavViewport {{
     background-color: transparent;
 }}
 
-#heroBadge {{
-    background-color: {colors['accent_soft']};
-    border: 1px solid {colors['border']};
-    border-radius: 999px;
-}}
-
-#heroBadgeText {{
-    font-family: "Roboto SemiBold";
-    color: {colors['accent']};
-    background-color: transparent;
-    border: none;
-    font-size: 11px;
-    letter-spacing: 1.5px;
-}}
-
 #pageSubtitle {{
     font-family: "Roboto";
     color: {colors['text_secondary']};

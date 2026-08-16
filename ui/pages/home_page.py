@@ -125,15 +125,6 @@ class HomePage(QWidget):
         # HERO
         # =========================
 
-        badge_line = QHBoxLayout()
-        badge_line.setSpacing(8)
-        badge_line.addWidget(self._build_hero_badge("zap", "FAST"))
-        badge_line.addWidget(self._build_hero_badge("shield", "PRIVATE"))
-        badge_line.addWidget(self._build_hero_badge("offline", "OFFLINE"))
-        badge_line.addStretch()
-        layout.addLayout(badge_line)
-        layout.addSpacing(14)
-
         page_title = QLabel("Image & PDF Toolkit")
         page_title.setObjectName("pageTitle")
         fade_in(page_title)
@@ -192,25 +183,6 @@ class HomePage(QWidget):
             layout.addSpacing(22)
 
         layout.addStretch()
-
-    @staticmethod
-    def _build_hero_badge(icon_name, label):
-        badge = QFrame()
-        badge.setObjectName("heroBadge")
-
-        row = QHBoxLayout(badge)
-        row.setContentsMargins(10, 6, 14, 6)
-        row.setSpacing(6)
-
-        icon = QLabel()
-        icon.setPixmap(icon_lib.get_pixmap(icon_name, _ACCENT, 12))
-        row.addWidget(icon)
-
-        text = QLabel(label)
-        text.setObjectName("heroBadgeText")
-        row.addWidget(text)
-
-        return badge
 
     def _browse(self):
         from PySide6.QtWidgets import QFileDialog

@@ -184,33 +184,43 @@ def extract_pages(input_path, pages_zero_indexed):
     return output_path
 
 
-def reorder_pdf(input_path, page_order_zero_indexed, rotations=None):
+def reorder_multi_pdf(page_entries, rotations=None, output_base_name="organized"):
     """
-    Writes a new PDF with pages taken from the original in `page_order_zero_indexed`
-    order (pages not listed are dropped — this is how page deletion is expressed),
-    with an optional extra rotation (degrees, keyed by original 0-indexed page
-    number) applied to each.
+    Writes one new PDF assembled from pages potentially drawn from several
+    source PDFs, in the given final order — this is how both cross-document
+    combining and single-document reorder/delete are expressed.
+
+    Args:
+        page_entries: list of (source_path, page_index) tuples, 0-indexed,
+            in the desired final order. A page simply not being listed is
+            how deletion is expressed.
+        rotations: optional dict of {(source_path, page_index): degrees} —
+            extra rotation applied on top of that page's current rotation.
+        output_base_name: filename stem for the output PDF.
 
     Returns:
         output_path
     """
 
-    input_path = str(input_path)
-    reader = PdfReader(input_path)
-    rotations = rotations or {}
-
-    if not page_order_zero_indexed:
+    if not page_entries:
         raise ValueError("At least one page must remain.")
 
+    rotations = rotations or {}
+    readers = {}
     writer = PdfWriter()
-    for original_index in page_order_zero_indexed:
-        new_page = writer.add_page(reader.pages[original_index])
-        angle = rotations.get(original_index, 0)
+
+    for source_path, page_index in page_entries:
+        source_path = str(source_path)
+
+        if source_path not in readers:
+            readers[source_path] = PdfReader(source_path)
+
+        new_page = writer.add_page(readers[source_path].pages[page_index])
+        angle = rotations.get((source_path, page_index), 0)
         if angle:
             new_page.rotate(angle)
 
-    base_name = os.path.splitext(os.path.basename(input_path))[0]
-    output_path = _unique_path(get_output_folder(), base_name, "_organized")
+    output_path = _unique_path(get_output_folder(), output_base_name, "_organized")
 
     with open(output_path, "wb") as output_file:
         writer.write(output_file)

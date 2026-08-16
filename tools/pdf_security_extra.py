@@ -10,6 +10,58 @@ _MARGIN = 40
 _BASE_SIGNATURE_FONT_SIZE = 22
 _MAX_IMAGE_SIGNATURE_WIDTH_FRACTION = 0.4
 
+_WINDOWS_FONTS_DIR = os.path.join(os.environ.get("WINDIR", r"C:\Windows"), "Fonts")
+
+# A few curated signature styles. "file" points at a font that ships with
+# Windows by default (not Office-only), so no extra font needs to be
+# bundled; if it's ever missing on a given machine, "fallback" is one of
+# pymupdf's built-in base-14 fonts so signing never breaks.
+SIGNATURE_FONTS = {
+    "cursive": {
+        "label": "Cursive",
+        "file": os.path.join(_WINDOWS_FONTS_DIR, "segoesc.ttf"),
+        "fallback": "heit",
+    },
+    "handwriting": {
+        "label": "Handwriting",
+        "file": os.path.join(_WINDOWS_FONTS_DIR, "Inkfree.ttf"),
+        "fallback": "heit",
+    },
+    "italic": {
+        "label": "Classic Italic",
+        "file": None,
+        "fallback": "heit",
+    },
+    "elegant": {
+        "label": "Elegant",
+        "file": None,
+        "fallback": "tiit",
+    },
+}
+DEFAULT_SIGNATURE_FONT = "cursive"
+
+
+def _resolve_signature_font(font_key):
+    """
+    Returns (fontname, fontfile) for use with pymupdf's insert_text /
+    pymupdf.Font — fontfile is an absolute path when a real font file is
+    available, or None to fall back to a built-in base-14 font.
+    """
+
+    spec = SIGNATURE_FONTS.get(font_key, SIGNATURE_FONTS[DEFAULT_SIGNATURE_FONT])
+    file_path = spec.get("file")
+
+    if file_path and os.path.exists(file_path):
+        return font_key, file_path
+
+    return spec["fallback"], None
+
+
+def _measure_text(text, fontname, fontfile, fontsize):
+    if fontfile:
+        return pymupdf.Font(fontfile=fontfile).text_length(text, fontsize=fontsize)
+    return pymupdf.get_text_length(text, fontname=fontname, fontsize=fontsize)
+
 
 def _unique_path(output_folder, base_name, suffix, ext):
     output_path = os.path.join(output_folder, f"{base_name}{suffix}.{ext}")
@@ -28,14 +80,22 @@ def _target_pages(document, page_target):
     return [document[-1]]
 
 
-def sign_pdf(input_path, signer_name, page_target="last", position="bottom-right", scale_percent=100):
+def sign_pdf(
+    input_path,
+    signer_name,
+    page_target="last",
+    position="bottom-right",
+    scale_percent=100,
+    font_key=DEFAULT_SIGNATURE_FONT,
+):
     """
-    Stamps a visual signature (name in an italic script-style font, with a
-    signature line) onto a PDF. This is a visual mark, not a legally-binding
-    cryptographic digital signature.
+    Stamps a visual signature (name in a script/handwriting-style font, with
+    a signature line) onto a PDF. This is a visual mark, not a
+    legally-binding cryptographic digital signature.
 
     `scale_percent` (10-100) scales the signature text/line size; 100% is
-    the largest, most legible size.
+    the largest, most legible size. `font_key` selects a style from
+    SIGNATURE_FONTS.
 
     Returns:
         output_path
@@ -50,12 +110,13 @@ def sign_pdf(input_path, signer_name, page_target="last", position="bottom-right
     scale = max(10, min(int(scale_percent), 100)) / 100
     name_font_size = max(6, round(_BASE_SIGNATURE_FONT_SIZE * scale))
     caption_font_size = max(5, round(8 * scale))
+    fontname, fontfile = _resolve_signature_font(font_key)
 
     with pymupdf.open(input_path) as document:
 
         for page in _target_pages(document, page_target):
             rect = page.rect
-            name_width = pymupdf.get_text_length(signer_name, fontname="heit", fontsize=name_font_size)
+            name_width = _measure_text(signer_name, fontname, fontfile, name_font_size)
             line_width = max(name_width + 20, 140 * scale)
 
             if "left" in position:
@@ -69,7 +130,12 @@ def sign_pdf(input_path, signer_name, page_target="last", position="bottom-right
 
             page.draw_line((x, y), (x + line_width, y), color=(0.4, 0.42, 0.48), width=0.8)
             page.insert_text(
-                (x, y - 6), signer_name, fontname="heit", fontsize=name_font_size, color=(0.1, 0.1, 0.15)
+                (x, y - 6),
+                signer_name,
+                fontname=fontname,
+                fontfile=fontfile,
+                fontsize=name_font_size,
+                color=(0.1, 0.1, 0.15),
             )
             page.insert_text(
                 (x, y + caption_font_size + 4),
