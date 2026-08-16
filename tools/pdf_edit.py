@@ -8,6 +8,65 @@ from tools.image_resizer import get_output_folder
 
 _MARGIN = 28
 
+_ASSETS_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "assets", "fonts")
+_WATERMARK_FONTS_DIR = os.path.join(_ASSETS_DIR, "watermark")
+_ROBOTO_FONT_PATH = os.path.join(_ASSETS_DIR, "Roboto-Variable.ttf")
+
+# Exactly the five fonts requested for watermarks. "Helvetica Neue" and
+# "Futura" are proprietary (Monotype/Linotype) and can't legally be
+# bundled or redistributed — pymupdf's built-in base-14 Helvetica ("helv")
+# stands in for Helvetica Neue, and Poppins (a well-known free
+# geometric-sans, Google Fonts/OFL) stands in for Futura. "Garamond" uses
+# EB Garamond, the standard free equivalent of the classic typeface.
+WATERMARK_FONTS = {
+    "montserrat": {
+        "label": "Montserrat",
+        "file": os.path.join(_WATERMARK_FONTS_DIR, "Montserrat-Regular.ttf"),
+        "fallback": "helv",
+    },
+    "helvetica_neue": {
+        "label": "Helvetica Neue",
+        "file": None,
+        "fallback": "helv",
+    },
+    "garamond": {
+        "label": "Garamond",
+        "file": os.path.join(_WATERMARK_FONTS_DIR, "EBGaramond-Regular.ttf"),
+        "fallback": "tiro",
+    },
+    "roboto": {
+        "label": "Roboto",
+        "file": _ROBOTO_FONT_PATH,
+        "fallback": "helv",
+    },
+    "futura": {
+        "label": "Futura",
+        "file": os.path.join(_WATERMARK_FONTS_DIR, "Poppins-Regular.ttf"),
+        "fallback": "helv",
+    },
+}
+DEFAULT_WATERMARK_FONT = "montserrat"
+
+
+def _resolve_watermark_font(font_key):
+    spec = WATERMARK_FONTS.get(font_key, WATERMARK_FONTS[DEFAULT_WATERMARK_FONT])
+    file_path = spec.get("file")
+
+    if file_path and os.path.exists(file_path):
+        return font_key, file_path
+
+    return spec["fallback"], None
+
+
+def _measure_text(text, fontname, fontfile, fontsize):
+    if fontfile:
+        return pymupdf.Font(fontfile=fontfile).text_length(text, fontsize=fontsize)
+    return pymupdf.get_text_length(text, fontname=fontname, fontsize=fontsize)
+
+
+def _clamp_fraction(percent, minimum=0, maximum=100):
+    return max(minimum, min(maximum, float(percent))) / 100
+
 
 def _unique_pdf_path(output_folder, base_name, suffix):
     output_path = os.path.join(output_folder, f"{base_name}{suffix}.pdf")
@@ -81,12 +140,29 @@ def add_page_numbers(input_path, position="bottom-center", start_at=1, font_size
     return output_path
 
 
-def add_watermark(input_path, text, opacity=30, font_size=48, color="#999999", fontname="helv"):
+def add_watermark(
+    input_path,
+    text,
+    opacity=30,
+    color="#999999",
+    font_key=DEFAULT_WATERMARK_FONT,
+    x_percent=25,
+    y_percent=45,
+    width_percent=50,
+    height_percent=10,
+    rotation_degrees=0,
+):
     """
-    Overlays a diagonal, semi-transparent text watermark across every page.
+    Overlays a semi-transparent text watermark onto every page, at an
+    exact position, size, and rotation — matching a box the user
+    dragged/resized on a page preview.
 
-    `fontname` is one of pymupdf's built-in base-14 font shorthands
-    (e.g. "helv", "hebo", "tiro", "tibo", "cour").
+    `x_percent`/`y_percent` place the box's top-left corner as a fraction
+    of the page's width/height; `width_percent`/`height_percent` size it
+    the same way. The watermark text is sized to fit within that box
+    (shrinking to whichever dimension is tighter), then rotated around the
+    box's center by `rotation_degrees`. `font_key` selects a style from
+    WATERMARK_FONTS.
 
     Returns:
         output_path
@@ -100,21 +176,38 @@ def add_watermark(input_path, text, opacity=30, font_size=48, color="#999999", f
 
     fill_opacity = max(1, min(int(opacity), 100)) / 100
     rgb = _hex_to_rgb01(color)
+    fontname, fontfile = _resolve_watermark_font(font_key)
+    rotation_degrees = int(rotation_degrees) % 360
+
+    x_frac = _clamp_fraction(x_percent)
+    y_frac = _clamp_fraction(y_percent)
+    width_frac = _clamp_fraction(width_percent, minimum=5)
+    height_frac = _clamp_fraction(height_percent, minimum=3)
 
     with pymupdf.open(input_path) as document:
 
         for page in document:
             rect = page.rect
-            center = rect.tl + (rect.br - rect.tl) / 2
-            morph = (center, pymupdf.Matrix(45))
+            box_x = rect.x0 + x_frac * rect.width
+            box_y = rect.y0 + y_frac * rect.height
+            box_width = width_frac * rect.width
+            box_height = height_frac * rect.height
 
-            text_width = pymupdf.get_text_length(text, fontname=fontname, fontsize=font_size)
+            reference_size = 100
+            reference_width = _measure_text(text, fontname, fontfile, reference_size)
+            width_based_size = (box_width / reference_width * reference_size) if reference_width > 0 else 24
+            font_size = max(6, min(width_based_size, box_height))
+
+            text_width = _measure_text(text, fontname, fontfile, font_size)
+            center = pymupdf.Point(box_x + box_width / 2, box_y + box_height / 2)
             point = pymupdf.Point(center.x - text_width / 2, center.y + font_size * 0.35)
+            morph = (center, pymupdf.Matrix(rotation_degrees)) if rotation_degrees else None
 
             page.insert_text(
                 point,
                 text,
                 fontname=fontname,
+                fontfile=fontfile,
                 fontsize=font_size,
                 color=rgb,
                 fill_opacity=fill_opacity,
@@ -128,15 +221,14 @@ def add_watermark(input_path, text, opacity=30, font_size=48, color="#999999", f
     return output_path
 
 
-def add_image_watermark(input_path, image_path, opacity=30, scale_percent=50, position="center", rotation_degrees=0):
+def add_image_watermark(input_path, image_path, opacity=30, x_percent=25, y_percent=40, width_percent=50, rotation_degrees=0):
     """
-    Overlays a semi-transparent image/logo watermark onto every page,
-    preserving aspect ratio and any existing transparency in the source
-    image (opacity is applied on top of it, not instead of it).
-
-    `scale_percent` (5-100) scales the watermark's width as a fraction of
-    the page width; 100% is the largest allowed size. `position` is one of
-    "center", "top-left", "top-right", "bottom-left", "bottom-right".
+    Overlays a semi-transparent image/logo watermark onto every page, at
+    an exact position and size — matching a box the user dragged/resized
+    on a page preview. Preserves aspect ratio (height is always derived
+    from the image's own aspect ratio, not dragged independently) and any
+    existing transparency in the source image (opacity is applied on top
+    of it, not instead of it).
 
     Returns:
         output_path
@@ -144,8 +236,10 @@ def add_image_watermark(input_path, image_path, opacity=30, scale_percent=50, po
 
     input_path = str(input_path)
     fill_opacity = max(1, min(int(opacity), 100)) / 100
-    scale = max(5, min(int(scale_percent), 100)) / 100
     rotation_degrees = int(rotation_degrees) % 360
+    x_frac = _clamp_fraction(x_percent)
+    y_frac = _clamp_fraction(y_percent)
+    width_frac = _clamp_fraction(width_percent, minimum=5)
 
     with Image.open(image_path) as source:
         rgba = source.convert("RGBA")
@@ -169,22 +263,12 @@ def add_image_watermark(input_path, image_path, opacity=30, scale_percent=50, po
 
         for page in document:
             rect = page.rect
-            target_width = rect.width * 0.5 * scale
+            box_x = rect.x0 + x_frac * rect.width
+            box_y = rect.y0 + y_frac * rect.height
+            target_width = width_frac * rect.width
             target_height = target_width * aspect_ratio
 
-            if position == "top-left":
-                x, y = rect.x0 + _MARGIN, rect.y0 + _MARGIN
-            elif position == "top-right":
-                x, y = rect.x1 - _MARGIN - target_width, rect.y0 + _MARGIN
-            elif position == "bottom-left":
-                x, y = rect.x0 + _MARGIN, rect.y1 - _MARGIN - target_height
-            elif position == "bottom-right":
-                x, y = rect.x1 - _MARGIN - target_width, rect.y1 - _MARGIN - target_height
-            else:
-                x = (rect.x0 + rect.x1) / 2 - target_width / 2
-                y = (rect.y0 + rect.y1) / 2 - target_height / 2
-
-            image_rect = pymupdf.Rect(x, y, x + target_width, y + target_height)
+            image_rect = pymupdf.Rect(box_x, box_y, box_x + target_width, box_y + target_height)
             page.insert_image(image_rect, stream=image_bytes, keep_proportion=True)
 
         base_name = os.path.splitext(os.path.basename(input_path))[0]
