@@ -205,7 +205,8 @@ def sign_pdf(
             name_font_size = max(6, min(width_based_size, height_based_size))
             caption_font_size = max(5, name_font_size * 0.3)
 
-            line_width = max(box_width, name_font_size * 2)
+            actual_text_width = _measure_text(signer_name, fontname, fontfile, name_font_size)
+            line_width = actual_text_width + 6
             baseline_y = box_y + name_font_size
 
             page.draw_line((box_x, baseline_y), (box_x + line_width, baseline_y), color=(0.4, 0.42, 0.48), width=0.8)
