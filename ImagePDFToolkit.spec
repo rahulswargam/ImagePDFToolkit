@@ -1,6 +1,5 @@
 # -*- mode: python ; coding: utf-8 -*-
 
-from PyInstaller.utils.hooks import collect_submodules
 from PyInstaller.utils.win32.versioninfo import (
     FixedFileInfo,
     StringFileInfo,
@@ -57,15 +56,7 @@ a = Analysis(
     pathex=[],
     binaries=[],
     datas=[('assets', 'assets'), ('VERSION', '.')],
-    hiddenimports=(
-        ['win32com', 'win32com.client', 'win32timezone', 'pythoncom', 'pywintypes']
-        # reportlab.graphics.barcode/widgets dynamically import their own
-        # submodules at runtime (not plain `import` statements), which
-        # PyInstaller's static analysis can't see — collect them explicitly
-        # or the frozen app crashes on startup with a ModuleNotFoundError,
-        # since xhtml2pdf (used by HTML -> PDF) pulls in reportlab.graphics.
-        + collect_submodules('reportlab.graphics')
-    ),
+    hiddenimports=[],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],

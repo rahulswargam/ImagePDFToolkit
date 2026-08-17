@@ -90,47 +90,6 @@ def merge_pdfs(input_paths):
     return output_path
 
 
-def split_pdf(input_path):
-    """
-    Splits a PDF into one single-page PDF per page, saved into a subfolder
-    named after the source file.
-
-    Returns:
-        list of output file paths, in page order
-    """
-
-    input_path = str(input_path)
-    reader = PdfReader(input_path)
-    page_count = len(reader.pages)
-
-    if page_count < 2:
-        raise ValueError("This PDF only has one page — nothing to split.")
-
-    base_name = os.path.splitext(os.path.basename(input_path))[0]
-    output_folder = os.path.join(get_output_folder(), base_name)
-    os.makedirs(output_folder, exist_ok=True)
-
-    width = len(str(page_count))
-    output_paths = []
-
-    for index, page in enumerate(reader.pages, start=1):
-        writer = PdfWriter()
-        writer.add_page(page)
-
-        output_path = os.path.join(output_folder, f"{base_name}_page_{index:0{width}}.pdf")
-        counter = 1
-        while os.path.exists(output_path):
-            output_path = os.path.join(output_folder, f"{base_name}_page_{index:0{width}}_{counter}.pdf")
-            counter += 1
-
-        with open(output_path, "wb") as output_file:
-            writer.write(output_file)
-
-        output_paths.append(output_path)
-
-    return output_paths
-
-
 def remove_pages(input_path, pages_zero_indexed):
     """
     Writes a copy of the PDF with the given 0-indexed pages removed.
@@ -153,30 +112,6 @@ def remove_pages(input_path, pages_zero_indexed):
 
     base_name = os.path.splitext(os.path.basename(input_path))[0]
     output_path = _unique_path(get_output_folder(), base_name, "_edited")
-
-    with open(output_path, "wb") as output_file:
-        writer.write(output_file)
-
-    return output_path
-
-
-def extract_pages(input_path, pages_zero_indexed):
-    """
-    Writes a new PDF containing only the given 0-indexed pages, in order.
-
-    Returns:
-        output_path
-    """
-
-    input_path = str(input_path)
-    reader = PdfReader(input_path)
-
-    writer = PdfWriter()
-    for index in sorted(set(pages_zero_indexed)):
-        writer.add_page(reader.pages[index])
-
-    base_name = os.path.splitext(os.path.basename(input_path))[0]
-    output_path = _unique_path(get_output_folder(), base_name, "_extracted")
 
     with open(output_path, "wb") as output_file:
         writer.write(output_file)

@@ -14,20 +14,14 @@ from ui import icons as icon_lib
 from ui.components.animation import fade_in
 from ui import tokens
 from ui.components.workspace import MAX_BATCH_FILES, DropWorkspace, FileGrid, clip_to_max_files
-from ui.pages.compare_pdf_page import ComparePdfPage
-from ui.pages.excel_to_pdf_page import ExcelToPdfPage
-from ui.pages.html_to_pdf_page import HtmlToPdfPage
 from ui.pages.image_resizer_page import ImageResizerPage
 from ui.pages.jpg_to_pdf_page import JpgToPdfPage
 from ui.pages.lock_pdf_page import LockPdfPage
 from ui.pages.pdf_forms_page import PdfFormsPage
 from ui.pages.png_to_jpg_page import PngToJpgPage
-from ui.pages.powerpoint_to_pdf_page import PowerpointToPdfPage
 from ui.pages.sign_pdf_page import SignPdfPage
-from ui.pages.split_pdf_page import SplitPdfPage
 from ui.pages.unlock_pdf_page import UnlockPdfPage
 from ui.pages.watermark_page import WatermarkPage
-from ui.pages.word_to_pdf_page import WordToPdfPage
 from tools.image_resizer import format_file_size
 
 _ACCENT = "#ef4444"
@@ -42,20 +36,15 @@ def _display_name(section_name):
 
 IMAGE_EXTENSIONS = (".jpg", ".jpeg", ".png", ".webp", ".bmp")
 PDF_EXTENSIONS = (".pdf",)
-OFFICE_EXTENSIONS = (".docx", ".doc", ".xlsx", ".xls", ".pptx", ".ppt", ".html", ".htm")
-DROPPABLE_EXTENSIONS = IMAGE_EXTENSIONS + PDF_EXTENSIONS + OFFICE_EXTENSIONS
+DROPPABLE_EXTENSIONS = IMAGE_EXTENSIONS + PDF_EXTENSIONS
 
 # Every tool not listed here is assumed to take a PDF (true for the large
-# majority — organize/optimize/edit/security tools, plus PDF-> conversions).
-# Only the tools that take something other than a PDF need an entry.
+# majority — organize/edit/security tools). Only the tools that take
+# something other than a PDF need an entry.
 _NON_PDF_TOOL_EXTENSIONS = {
     ImageResizerPage: IMAGE_EXTENSIONS,
     PngToJpgPage: (".png",),
     JpgToPdfPage: IMAGE_EXTENSIONS,
-    WordToPdfPage: (".docx", ".doc"),
-    ExcelToPdfPage: (".xlsx", ".xls"),
-    PowerpointToPdfPage: (".pptx", ".ppt"),
-    HtmlToPdfPage: (".html", ".htm"),
 }
 
 
@@ -71,9 +60,7 @@ _SINGLE_FILE_ONLY_TOOLS = {
     UnlockPdfPage,
     SignPdfPage,
     WatermarkPage,
-    SplitPdfPage,
     PdfFormsPage,
-    ComparePdfPage,
     PngToJpgPage,
 }
 
@@ -212,8 +199,8 @@ class HomePage(QWidget):
             _ACCENT,
             multiple=True,
             title="Drop a file to get started",
-            subtitle="Drag & drop an image, PDF, or document, or click to browse",
-            hint="JPG · PNG · WEBP · PDF · DOCX · XLSX · PPTX · HTML",
+            subtitle="Drag & drop an image or PDF, or click to browse",
+            hint="JPG · PNG · WEBP · PDF",
         )
         self.drop_workspace.filesDropped.connect(self._on_files_dropped)
         self.drop_workspace.browseRequested.connect(self._browse)
@@ -328,7 +315,7 @@ class HomePage(QWidget):
             self.file_grid.hide()
             self.drop_workspace.set_text(
                 "Drop a file to get started",
-                "Drag & drop an image, PDF, or document, or click to browse",
+                "Drag & drop an image or PDF, or click to browse",
             )
             self._update_suggestions()
             return
