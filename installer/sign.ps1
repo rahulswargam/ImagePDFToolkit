@@ -18,7 +18,7 @@
 
 .PARAMETER Files
     Files to sign. Defaults to the exe and installer produced by the
-    standard build (dist\ImagePDFToolkit.exe, dist\ImagePDFToolkit-Setup.exe),
+    standard build (dist\FileForgeToolkit.exe, dist\FileForgeToolkit-Setup.exe),
     skipping any that don't exist yet.
 
 .EXAMPLE
@@ -36,8 +36,8 @@ $ErrorActionPreference = "Stop"
 $RepoRoot = Split-Path -Parent $PSScriptRoot
 if (-not $Files) {
     $Files = @(
-        (Join-Path $RepoRoot "dist\ImagePDFToolkit.exe"),
-        (Join-Path $RepoRoot "dist\ImagePDFToolkit-Setup.exe")
+        (Join-Path $RepoRoot "dist\FileForgeToolkit.exe"),
+        (Join-Path $RepoRoot "dist\FileForgeToolkit-Setup.exe")
     )
 }
 $Files = $Files | Where-Object { Test-Path $_ }

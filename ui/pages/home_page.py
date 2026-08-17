@@ -1,3 +1,5 @@
+import os
+
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QFrame,
@@ -12,6 +14,13 @@ from ui import icons as icon_lib
 from ui.components.animation import fade_in
 from ui import tokens
 from ui.components.workspace import DropWorkspace
+from ui.pages.excel_to_pdf_page import ExcelToPdfPage
+from ui.pages.html_to_pdf_page import HtmlToPdfPage
+from ui.pages.image_resizer_page import ImageResizerPage
+from ui.pages.jpg_to_pdf_page import JpgToPdfPage
+from ui.pages.png_to_jpg_page import PngToJpgPage
+from ui.pages.powerpoint_to_pdf_page import PowerpointToPdfPage
+from ui.pages.word_to_pdf_page import WordToPdfPage
 
 _ACCENT = "#ef4444"
 _ICON_MUTED = "#9397a8"
@@ -25,6 +34,25 @@ def _display_name(section_name):
 
 IMAGE_EXTENSIONS = (".jpg", ".jpeg", ".png", ".webp", ".bmp")
 PDF_EXTENSIONS = (".pdf",)
+OFFICE_EXTENSIONS = (".docx", ".doc", ".xlsx", ".xls", ".pptx", ".ppt", ".html", ".htm")
+DROPPABLE_EXTENSIONS = IMAGE_EXTENSIONS + PDF_EXTENSIONS + OFFICE_EXTENSIONS
+
+# Every tool not listed here is assumed to take a PDF (true for the large
+# majority — organize/optimize/edit/security tools, plus PDF-> conversions).
+# Only the tools that take something other than a PDF need an entry.
+_NON_PDF_TOOL_EXTENSIONS = {
+    ImageResizerPage: IMAGE_EXTENSIONS,
+    PngToJpgPage: (".png",),
+    JpgToPdfPage: IMAGE_EXTENSIONS,
+    WordToPdfPage: (".docx", ".doc"),
+    ExcelToPdfPage: (".xlsx", ".xls"),
+    PowerpointToPdfPage: (".pptx", ".ppt"),
+    HtmlToPdfPage: (".html", ".htm"),
+}
+
+
+def _tool_extensions(page_class):
+    return _NON_PDF_TOOL_EXTENSIONS.get(page_class, PDF_EXTENSIONS)
 
 
 class QuickActionRow(QFrame):
@@ -105,13 +133,13 @@ class HomePage(QWidget):
     same shape used to build the sidebar, so Home mirrors it exactly.
     """
 
-    def __init__(self, notify, open_tool, open_dropped_files, sections, parent=None):
+    def __init__(self, notify, open_tool, sections, parent=None):
         super().__init__(parent)
 
         self.notify = notify
         self.open_tool = open_tool
-        self.open_dropped_files = open_dropped_files
         self.sections = sections
+        self._all_tools = [tool for _section_name, tools in sections for tool in tools]
 
         self.setup_ui()
 
@@ -140,17 +168,37 @@ class HomePage(QWidget):
         # =========================
 
         self.drop_workspace = DropWorkspace(
-            IMAGE_EXTENSIONS + PDF_EXTENSIONS,
+            DROPPABLE_EXTENSIONS,
             _ACCENT,
             multiple=True,
             title="Drop a file to get started",
-            subtitle="Drag & drop an image or PDF, or click to browse",
-            hint="JPG · PNG · WEBP · PDF",
+            subtitle="Drag & drop an image, PDF, or document, or click to browse",
+            hint="JPG · PNG · WEBP · PDF · DOCX · XLSX · PPTX · HTML",
         )
         self.drop_workspace.filesDropped.connect(self._on_files_dropped)
         self.drop_workspace.browseRequested.connect(self._browse)
         layout.addWidget(self.drop_workspace)
-        layout.addSpacing(28)
+        layout.addSpacing(18)
+
+        # =========================
+        # SUGGESTED TOOLS (populated after a file is dropped)
+        # =========================
+
+        self.suggestions_heading = QLabel("")
+        self.suggestions_heading.setObjectName("sectionHeading")
+        self.suggestions_heading.hide()
+        layout.addWidget(self.suggestions_heading)
+        layout.addSpacing(10)
+
+        self.suggestions_container = QWidget()
+        self.suggestions_grid = QGridLayout(self.suggestions_container)
+        self.suggestions_grid.setHorizontalSpacing(12)
+        self.suggestions_grid.setVerticalSpacing(8)
+        self.suggestions_grid.setColumnStretch(0, 1)
+        self.suggestions_grid.setColumnStretch(1, 1)
+        self.suggestions_container.hide()
+        layout.addWidget(self.suggestions_container)
+        layout.addSpacing(22)
 
         # =========================
         # TOOL CATEGORIES
@@ -187,7 +235,7 @@ class HomePage(QWidget):
     def _browse(self):
         from PySide6.QtWidgets import QFileDialog
 
-        extensions = " ".join(f"*{ext}" for ext in IMAGE_EXTENSIONS + PDF_EXTENSIONS)
+        extensions = " ".join(f"*{ext}" for ext in DROPPABLE_EXTENSIONS)
         paths, _ = QFileDialog.getOpenFileNames(
             self, "Select a file", "", f"Supported files ({extensions})"
         )
@@ -195,4 +243,38 @@ class HomePage(QWidget):
             self._on_files_dropped(paths)
 
     def _on_files_dropped(self, paths):
-        self.open_dropped_files(paths)
+
+        while self.suggestions_grid.count():
+            item = self.suggestions_grid.takeAt(0)
+            widget = item.widget()
+            if widget:
+                widget.deleteLater()
+
+        if not paths:
+            self.suggestions_heading.hide()
+            self.suggestions_container.hide()
+            return
+
+        extension = os.path.splitext(paths[0])[1].lower()
+        matches = [tool for tool in self._all_tools if extension in _tool_extensions(tool[3])]
+
+        if not matches:
+            self.suggestions_heading.hide()
+            self.suggestions_container.hide()
+            return
+
+        plural = "file" if len(paths) == 1 else "files"
+        self.suggestions_heading.setText(f"What would you like to do with your {plural}?")
+        self.suggestions_heading.show()
+
+        for index, (icon_name, title_text, description, page_class) in enumerate(matches):
+            row = QuickActionRow(
+                icon_name,
+                title_text,
+                description,
+                lambda p=page_class, t=title_text, d=description: self.open_tool(p, t, d, initial_paths=paths),
+            )
+            grid_row, grid_col = divmod(index, 2)
+            self.suggestions_grid.addWidget(row, grid_row, grid_col)
+
+        self.suggestions_container.show()

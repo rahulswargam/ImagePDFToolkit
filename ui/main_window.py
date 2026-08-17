@@ -19,7 +19,7 @@ from ui.components.animation import fade_in
 from ui.components.nav import NavBreadcrumb, NavItem
 from ui.components.scroll import SmoothScrollArea
 from ui.components.feedback import Toast
-from ui.pages.home_page import IMAGE_EXTENSIONS, HomePage
+from ui.pages.home_page import HomePage
 from ui.pages.compare_pdf_page import ComparePdfPage
 from ui.pages.compress_pdf_page import CompressPdfPage
 from ui.pages.crop_pdf_page import CropPdfPage
@@ -305,32 +305,11 @@ class MainWindow(QMainWindow):
         scroll_area.setFrameShape(QFrame.Shape.NoFrame)
         scroll_area.viewport().setObjectName("scrollViewport")
 
-        page = HomePage(self.notify, self.open_tool, self.open_dropped_files, NAV_SECTIONS)
+        page = HomePage(self.notify, self.open_tool, NAV_SECTIONS)
         page.setObjectName("scrollViewport")
         scroll_area.setWidget(page)
 
         self.content_layout.addWidget(scroll_area)
-
-    def open_dropped_files(self, paths):
-        if not paths:
-            return
-
-        extension = os.path.splitext(paths[0])[1].lower()
-
-        if extension in IMAGE_EXTENSIONS:
-            self.open_tool(
-                ImageResizerPage,
-                "Image Resizer",
-                "Compress images down to a target file size.",
-                initial_paths=paths,
-            )
-        else:
-            self.open_tool(
-                PdfToJpgPage,
-                "PDF → JPG",
-                "Convert PDF pages into high-quality JPG images.",
-                initial_paths=paths,
-            )
 
     def open_tool(self, page_class, title_text, description, initial_paths=None):
         def factory():

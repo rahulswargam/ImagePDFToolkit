@@ -1,13 +1,14 @@
 ; Inno Setup script for FileForge Toolkit.
 ; Build with: ISCC installer\setup.iss  (run from the project root)
-; Produces:   dist\ImagePDFToolkit-Setup.exe
+; Produces:   dist\FileForgeToolkit-Setup.exe
 
 #define MyAppName "FileForge Toolkit"
 #define MyAppPublisher "Rahul Swargam"
 #define VersionFile FileOpen(SourcePath + "..\VERSION")
 #define MyAppVersion Trim(FileRead(VersionFile))
 #expr FileClose(VersionFile)
-#define MyAppExeName "ImagePDFToolkit.exe"
+#define MyAppExeName "FileForgeToolkit.exe"
+#define MyOldAppExeName "ImagePDFToolkit.exe"
 #define MyAppCopyright "Copyright © 2026 Rahul Swargam"
 
 [Setup]
@@ -21,7 +22,7 @@ DefaultDirName={autopf}\{#MyAppName}
 DefaultGroupName={#MyAppName}
 DisableProgramGroupPage=yes
 OutputDir=..\dist
-OutputBaseFilename=ImagePDFToolkit-Setup
+OutputBaseFilename=FileForgeToolkit-Setup
 SetupIconFile=..\assets\icons\app.ico
 UninstallDisplayIcon={app}\{#MyAppExeName}
 VersionInfoVersion={#MyAppVersion}
@@ -41,6 +42,13 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 
 [Tasks]
 Name: "desktopicon"; Description: "Create a &desktop shortcut"; GroupDescription: "Additional shortcuts:"
+
+; Upgrading users had "ImagePDFToolkit.exe" installed under the old name.
+; The AppId stays the same (so this upgrade lands in the same directory),
+; but the exe itself is now named "FileForgeToolkit.exe" — clean up the
+; stale old-named file so it doesn't linger as an orphan.
+[InstallDelete]
+Type: files; Name: "{app}\{#MyOldAppExeName}"
 
 [Files]
 Source: "..\dist\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion
