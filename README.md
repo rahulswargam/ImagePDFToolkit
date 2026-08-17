@@ -1,4 +1,4 @@
-# Image & PDF Toolkit
+# FileForge Toolkit
 
 A simple, fast, offline desktop app for common image and PDF tasks — built with
 PySide6 (Qt for Python).
@@ -23,8 +23,16 @@ missing.
 - **PDF → JPG** — export every page of up to 10 PDFs as high-quality JPGs
 - **Lock PDF** — password-protect a PDF
 - **Unlock PDF** — remove a PDF's password
+- **Word / PowerPoint / Excel → PDF** — uses Microsoft Office when it's
+  installed for exact fidelity, with a simplified fallback converter otherwise
+- **HTML → PDF** — convert a local HTML file into a PDF
+- **Convert to PDF/A** — best-effort PDF/A conversion for long-term archival
 - **Settings** — light/dark/system theme, and a configurable default save
   folder
+
+Plus a full suite of PDF organizing, optimizing, and editing tools (merge,
+split, compress, repair, rotate, watermark, sign, redact, compare, and more)
+— see the app's sidebar for the complete list.
 
 Everything runs locally — no internet connection or account required. Theme
 follows your Windows setting by default. Output files are saved to

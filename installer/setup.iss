@@ -1,8 +1,8 @@
-; Inno Setup script for Image & PDF Toolkit.
+; Inno Setup script for FileForge Toolkit.
 ; Build with: ISCC installer\setup.iss  (run from the project root)
 ; Produces:   dist\ImagePDFToolkit-Setup.exe
 
-#define MyAppName "Image & PDF Toolkit"
+#define MyAppName "FileForge Toolkit"
 #define MyAppPublisher "Rahul Swargam"
 #define VersionFile FileOpen(SourcePath + "..\VERSION")
 #define MyAppVersion Trim(FileRead(VersionFile))

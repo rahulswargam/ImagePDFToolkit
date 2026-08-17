@@ -125,7 +125,7 @@ class HomePage(QWidget):
         # HERO
         # =========================
 
-        page_title = QLabel("Image & PDF Toolkit")
+        page_title = QLabel("FileForge Toolkit")
         page_title.setObjectName("pageTitle")
         fade_in(page_title)
         layout.addWidget(page_title)

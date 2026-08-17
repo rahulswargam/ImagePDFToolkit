@@ -23,7 +23,9 @@ from ui.pages.home_page import IMAGE_EXTENSIONS, HomePage
 from ui.pages.compare_pdf_page import ComparePdfPage
 from ui.pages.compress_pdf_page import CompressPdfPage
 from ui.pages.crop_pdf_page import CropPdfPage
+from ui.pages.excel_to_pdf_page import ExcelToPdfPage
 from ui.pages.extract_pages_page import ExtractPagesPage
+from ui.pages.html_to_pdf_page import HtmlToPdfPage
 from ui.pages.image_resizer_page import ImageResizerPage
 from ui.pages.jpg_to_pdf_page import JpgToPdfPage
 from ui.pages.lock_pdf_page import LockPdfPage
@@ -32,7 +34,9 @@ from ui.pages.organize_pdf_page import OrganizePdfPage
 from ui.pages.page_numbers_page import PageNumbersPage
 from ui.pages.pdf_forms_page import PdfFormsPage
 from ui.pages.pdf_to_jpg_page import PdfToJpgPage
+from ui.pages.pdf_to_pdfa_page import PdfToPdfaPage
 from ui.pages.png_to_jpg_page import PngToJpgPage
+from ui.pages.powerpoint_to_pdf_page import PowerpointToPdfPage
 from ui.pages.redact_pdf_page import RedactPdfPage
 from ui.pages.remove_pages_page import RemovePagesPage
 from ui.pages.repair_pdf_page import RepairPdfPage
@@ -42,6 +46,7 @@ from ui.pages.sign_pdf_page import SignPdfPage
 from ui.pages.split_pdf_page import SplitPdfPage
 from ui.pages.unlock_pdf_page import UnlockPdfPage
 from ui.pages.watermark_page import WatermarkPage
+from ui.pages.word_to_pdf_page import WordToPdfPage
 from ui.styles import DARK_STYLE, LIGHT_STYLE
 from version import APP_VERSION
 
@@ -67,9 +72,17 @@ OPTIMIZE_TOOLS = [
     ("file-pulse", "Repair PDF", "Fix corrupted or malformed PDF files.", RepairPdfPage),
 ]
 
-CONVERT_TOOLS = [
+CONVERT_TO_PDF_TOOLS = [
     ("layers", "JPG → PDF", "Convert one or multiple JPG images into a PDF.", JpgToPdfPage),
+    ("file-word", "Word → PDF", "Convert Word documents into PDF, using Microsoft Word when installed.", WordToPdfPage),
+    ("file-powerpoint", "PowerPoint → PDF", "Convert PowerPoint presentations into PDF, using PowerPoint when installed.", PowerpointToPdfPage),
+    ("file-excel", "Excel → PDF", "Convert Excel workbooks into PDF, using Excel when installed.", ExcelToPdfPage),
+    ("file-code", "HTML → PDF", "Convert an HTML file into a PDF document.", HtmlToPdfPage),
+]
+
+CONVERT_FROM_PDF_TOOLS = [
     ("image", "PDF → JPG", "Convert PDF pages into high-quality JPG images.", PdfToJpgPage),
+    ("pdf-a", "Convert to PDF/A", "Best-effort PDF/A conversion for long-term archival.", PdfToPdfaPage),
 ]
 
 EDIT_TOOLS = [
@@ -92,12 +105,16 @@ NAV_SECTIONS = [
     ("IMAGE", IMAGE_TOOLS),
     ("ORGANIZE PDF", ORGANIZE_TOOLS),
     ("OPTIMIZE PDF", OPTIMIZE_TOOLS),
-    ("CONVERT PDF", CONVERT_TOOLS),
+    ("CONVERT TO PDF", CONVERT_TO_PDF_TOOLS),
+    ("CONVERT FROM PDF", CONVERT_FROM_PDF_TOOLS),
     ("EDIT PDF", EDIT_TOOLS),
     ("PDF SECURITY", SECURITY_TOOLS),
 ]
 
-ALL_TOOLS = IMAGE_TOOLS + ORGANIZE_TOOLS + OPTIMIZE_TOOLS + CONVERT_TOOLS + EDIT_TOOLS + SECURITY_TOOLS
+ALL_TOOLS = (
+    IMAGE_TOOLS + ORGANIZE_TOOLS + OPTIMIZE_TOOLS
+    + CONVERT_TO_PDF_TOOLS + CONVERT_FROM_PDF_TOOLS + EDIT_TOOLS + SECURITY_TOOLS
+)
 
 COPYRIGHT_TEXT = "© 2026 Rahul Swargam\nMIT License"
 
@@ -128,7 +145,7 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
 
-        self.setWindowTitle(f"Image & PDF Toolkit v{APP_VERSION}")
+        self.setWindowTitle(f"FileForge Toolkit v{APP_VERSION}")
         self.resize(1200, 760)
         self.setMinimumSize(1040, 680)
 
@@ -176,7 +193,7 @@ class MainWindow(QMainWindow):
         sidebar_layout.setContentsMargins(20, 24, 20, 20)
         sidebar_layout.setSpacing(2)
 
-        title = QLabel("Image & PDF")
+        title = QLabel("FileForge")
         title.setObjectName("appTitle")
 
         subtitle = QLabel("TOOLKIT")
@@ -323,7 +340,7 @@ class MainWindow(QMainWindow):
         self._open_page(title_text, description, factory)
 
     def _seed_page(self, page, initial_paths):
-        for method_name in ("load_images", "load_pdfs", "load_image"):
+        for method_name in ("load_images", "load_pdfs", "load_files", "load_image"):
             method = getattr(page, method_name, None)
             if method is None:
                 continue

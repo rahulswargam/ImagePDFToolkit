@@ -36,12 +36,12 @@ version_info = VSVersionInfo(
                     "040904B0",
                     [
                         StringStruct("CompanyName", "Rahul Swargam"),
-                        StringStruct("FileDescription", "Image & PDF Toolkit"),
+                        StringStruct("FileDescription", "FileForge Toolkit"),
                         StringStruct("FileVersion", _version),
                         StringStruct("InternalName", "ImagePDFToolkit"),
                         StringStruct("LegalCopyright", f"Copyright © {_year} Rahul Swargam"),
                         StringStruct("OriginalFilename", "ImagePDFToolkit.exe"),
-                        StringStruct("ProductName", "Image & PDF Toolkit"),
+                        StringStruct("ProductName", "FileForge Toolkit"),
                         StringStruct("ProductVersion", _version),
                     ],
                 )
@@ -56,7 +56,7 @@ a = Analysis(
     pathex=[],
     binaries=[],
     datas=[('assets', 'assets'), ('VERSION', '.')],
-    hiddenimports=[],
+    hiddenimports=['win32com', 'win32com.client', 'win32timezone', 'pythoncom', 'pywintypes'],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],

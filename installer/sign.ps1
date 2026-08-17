@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-    Authenticode-signs the Image & PDF Toolkit exe and installer.
+    Authenticode-signs the FileForge Toolkit exe and installer.
 
 .DESCRIPTION
     Reads the signing certificate path and password from environment
@@ -80,7 +80,7 @@ foreach ($file in $Files) {
         /fd sha256 `
         /td sha256 `
         /tr $timestampUrl `
-        /d "Image & PDF Toolkit" `
+        /d "FileForge Toolkit" `
         $file
 
     if ($LASTEXITCODE -ne 0) {

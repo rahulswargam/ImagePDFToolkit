@@ -1,9 +1,9 @@
 # Code signing
 
-Image & PDF Toolkit's build produces two files that Windows treats specially:
+FileForge Toolkit's build produces two files that Windows treats specially:
 `dist\ImagePDFToolkit.exe` (the app) and `dist\ImagePDFToolkit-Setup.exe` (the
 installer). Both already carry correct publisher metadata (`CompanyName` /
-`ProductName` = "Image & PDF Toolkit", author "Rahul Swargam" — see the
+`ProductName` = "FileForge Toolkit", author "Rahul Swargam" — see the
 `version_info` block in `ImagePDFToolkit.spec` and the `AppPublisher`/
 `VersionInfoCompany` settings in `installer/setup.iss`), which is why Windows
 no longer shows "Unknown Publisher" when you inspect the file properties.

@@ -19,7 +19,7 @@ def main():
     app = QApplication(sys.argv)
     app.setStyle(QStyleFactory.create("Fusion"))
 
-    app.setApplicationName("Image & PDF Toolkit")
+    app.setApplicationName("FileForge Toolkit")
 
     load_app_font()
     app.setFont(QFont("Roboto", 10))
