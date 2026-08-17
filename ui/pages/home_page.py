@@ -19,6 +19,8 @@ from ui.pages.jpg_to_pdf_page import JpgToPdfPage
 from ui.pages.lock_pdf_page import LockPdfPage
 from ui.pages.pdf_forms_page import PdfFormsPage
 from ui.pages.png_to_jpg_page import PngToJpgPage
+from ui.pages.remove_pages_page import RemovePagesPage
+from ui.pages.rotate_pdf_page import RotatePdfPage
 from ui.pages.sign_pdf_page import SignPdfPage
 from ui.pages.unlock_pdf_page import UnlockPdfPage
 from ui.pages.watermark_page import WatermarkPage
@@ -52,9 +54,12 @@ def _tool_extensions(page_class):
     return _NON_PDF_TOOL_EXTENSIONS.get(page_class, PDF_EXTENSIONS)
 
 
-# Tools whose page only accepts one file at a time (DropWorkspace(multiple=False)) —
-# these need to drop out of the suggestions once more than one file is on the bench,
-# since clicking them with a multi-file selection wouldn't work as expected.
+# Tools only suggested from Home when exactly one file is selected — either
+# because the page genuinely only accepts one file (DropWorkspace(multiple=False):
+# Lock/Unlock/Sign/Watermark PDF, PDF Forms, PNG -> JPG), or because a single
+# setting (page range, rotation direction) applying identically across several
+# unrelated PDFs at once isn't a sensible batch action from this entry point
+# (Rotate PDF, Remove Pages).
 _SINGLE_FILE_ONLY_TOOLS = {
     LockPdfPage,
     UnlockPdfPage,
@@ -62,6 +67,8 @@ _SINGLE_FILE_ONLY_TOOLS = {
     WatermarkPage,
     PdfFormsPage,
     PngToJpgPage,
+    RotatePdfPage,
+    RemovePagesPage,
 }
 
 
@@ -72,6 +79,15 @@ def _file_kind(path):
     if extension in PDF_EXTENSIONS:
         return "pdf"
     return "file"
+
+
+def _file_family(path):
+    """Coarse image-vs-pdf grouping used to keep a dropped batch consistent —
+    once one type is on the bench, files of the other type get rejected
+    rather than silently mixed in with tools that only understand one kind."""
+
+    extension = os.path.splitext(path)[1].lower()
+    return "image" if extension in IMAGE_EXTENSIONS else "pdf"
 
 
 def _file_meta(path):
@@ -289,19 +305,47 @@ class HomePage(QWidget):
 
     def _on_files_dropped(self, paths):
 
-        combined, truncated = clip_to_max_files(list(self._dropped_paths) + list(paths))
+        if not paths:
+            return
+
+        # Establish the type family from whatever's already selected, or —
+        # on a first drop — from the first file of this very batch, so even
+        # a mixed batch dropped all at once settles on one consistent type.
+        established_family = _file_family(self._dropped_paths[0] if self._dropped_paths else paths[0])
+        accepted = [p for p in paths if _file_family(p) == established_family]
+        rejected_count = len(paths) - len(accepted)
+
+        combined, truncated = clip_to_max_files(list(self._dropped_paths) + accepted)
         self._dropped_paths = combined
         self._refresh_files()
 
-        if truncated:
-            from ui.components.feedback import CompletionDialog
-
-            CompletionDialog.warn(
-                self,
+        if rejected_count and truncated:
+            self._warn(
+                "Some Files Skipped",
+                f"{rejected_count} file(s) were skipped because you already have "
+                f"{'images' if established_family == 'image' else 'PDFs'} selected, and "
+                f"only the first {MAX_BATCH_FILES} of the rest were kept "
+                f"({truncated} extra file(s) were not added).",
+            )
+        elif rejected_count:
+            plural = "file was" if rejected_count == 1 else "files were"
+            self._warn(
+                "Different File Type",
+                f"{rejected_count} {plural} skipped because you already have "
+                f"{'images' if established_family == 'image' else 'PDFs'} selected. "
+                "Remove them first if you want to switch to a different file type.",
+            )
+        elif truncated:
+            self._warn(
                 "Too Many Files",
                 f"Only the first {MAX_BATCH_FILES} files were kept "
                 f"({truncated} extra file(s) were not added).",
             )
+
+    def _warn(self, title, message):
+        from ui.components.feedback import CompletionDialog
+
+        CompletionDialog.warn(self, title, message)
 
     def _on_file_grid_changed(self, paths):
         self._dropped_paths = paths
