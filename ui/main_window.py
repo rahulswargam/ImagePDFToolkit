@@ -35,6 +35,7 @@ from ui.pages.page_numbers_page import PageNumbersPage
 from ui.pages.pdf_forms_page import PdfFormsPage
 from ui.pages.pdf_to_jpg_page import PdfToJpgPage
 from ui.pages.pdf_to_pdfa_page import PdfToPdfaPage
+from ui.pages.pdf_to_word_page import PdfToWordPage
 from ui.pages.png_to_jpg_page import PngToJpgPage
 from ui.pages.powerpoint_to_pdf_page import PowerpointToPdfPage
 from ui.pages.redact_pdf_page import RedactPdfPage
@@ -82,6 +83,7 @@ CONVERT_TO_PDF_TOOLS = [
 
 CONVERT_FROM_PDF_TOOLS = [
     ("image", "PDF → JPG", "Convert PDF pages into high-quality JPG images.", PdfToJpgPage),
+    ("file-word", "PDF → Word", "Convert a PDF into an editable Word document.", PdfToWordPage),
     ("pdf-a", "Convert to PDF/A", "Best-effort PDF/A conversion for long-term archival.", PdfToPdfaPage),
 ]
 
