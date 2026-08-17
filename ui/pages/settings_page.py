@@ -56,7 +56,7 @@ class SettingsPage(QWidget):
         layout.addWidget(title)
 
         description = QLabel(
-            "Choose how Image & PDF Toolkit looks. \"System\" follows your "
+            "Choose how FileForge Toolkit looks. \"System\" follows your "
             "Windows light/dark setting automatically."
         )
         description.setObjectName("toolDescription")
@@ -226,7 +226,7 @@ class SettingsPage(QWidget):
         layout.addSpacing(4)
 
         rows = [
-            ("Application", "Image & PDF Toolkit"),
+            ("Application", "FileForge Toolkit"),
             ("Version", f"v{APP_VERSION}"),
             ("License", "MIT License"),
             ("Created by", "Rahul Swargam"),
