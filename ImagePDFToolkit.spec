@@ -39,9 +39,9 @@ version_info = VSVersionInfo(
                         StringStruct("CompanyName", "Rahul Swargam"),
                         StringStruct("FileDescription", "FileForge Toolkit"),
                         StringStruct("FileVersion", _version),
-                        StringStruct("InternalName", "ImagePDFToolkit"),
+                        StringStruct("InternalName", "FileForgeToolkit"),
                         StringStruct("LegalCopyright", f"Copyright © {_year} Rahul Swargam"),
-                        StringStruct("OriginalFilename", "ImagePDFToolkit.exe"),
+                        StringStruct("OriginalFilename", "FileForgeToolkit.exe"),
                         StringStruct("ProductName", "FileForge Toolkit"),
                         StringStruct("ProductVersion", _version),
                     ],
@@ -69,7 +69,19 @@ a = Analysis(
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
-    excludes=[],
+    # Pure-Python submodules pulled in transitively by numpy/opencv (via
+    # pdf2docx) that this app never uses — dev tooling, test suites, and
+    # Fortran-wrapping utilities. Safe to exclude; nothing here is imported
+    # by any code path this app actually runs.
+    excludes=[
+        'numpy.distutils',
+        'numpy.f2py',
+        'numpy.testing',
+        'numpy.tests',
+        'scipy',
+        'matplotlib',
+        'pytest',
+    ],
     noarchive=False,
     optimize=0,
 )
@@ -81,7 +93,7 @@ exe = EXE(
     a.binaries,
     a.datas,
     [],
-    name='ImagePDFToolkit',
+    name='FileForgeToolkit',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,

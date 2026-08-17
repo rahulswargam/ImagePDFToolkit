@@ -5,7 +5,7 @@ PySide6 (Qt for Python).
 
 ## Download
 
-**[⬇ Download for Windows](https://github.com/rahulswargam/ImagePDFToolkit/releases/latest/download/ImagePDFToolkit-Setup.exe)**
+**[⬇ Download for Windows](https://github.com/rahulswargam/ImagePDFToolkit/releases/latest/download/FileForgeToolkit-Setup.exe)**
 — always grabs the latest release. See the [Releases page](https://github.com/rahulswargam/ImagePDFToolkit/releases)
 for release notes and older versions.
 
@@ -57,7 +57,7 @@ Building a distributable `Setup.exe` additionally requires
 
 ```bash
 pip install pyinstaller
-pyinstaller --name "ImagePDFToolkit" --onefile --windowed --icon assets/icons/app.ico --add-data "assets;assets" --add-data "VERSION;." app.py
+pyinstaller --name "FileForgeToolkit" --onefile --windowed --icon assets/icons/app.ico --add-data "assets;assets" --add-data "VERSION;." app.py
 ```
 
 Then download the [Visual C++ Redistributable](https://aka.ms/vs/17/release/vc_redist.x64.exe)
@@ -67,7 +67,7 @@ into `installer/downloads/vc_redist.x64.exe`, and compile the installer:
 ISCC installer\setup.iss
 ```
 
-The resulting `dist\ImagePDFToolkit-Setup.exe` is a self-contained installer
+The resulting `dist\FileForgeToolkit-Setup.exe` is a self-contained installer
 that bundles the app and installs the VC++ Redistributable only if it isn't
 already present on the target machine.
 

@@ -1,7 +1,7 @@
 # Code signing
 
 FileForge Toolkit's build produces two files that Windows treats specially:
-`dist\ImagePDFToolkit.exe` (the app) and `dist\ImagePDFToolkit-Setup.exe` (the
+`dist\FileForgeToolkit.exe` (the app) and `dist\FileForgeToolkit-Setup.exe` (the
 installer). Both already carry correct publisher metadata (`CompanyName` /
 `ProductName` = "FileForge Toolkit", author "Rahul Swargam" — see the
 `version_info` block in `ImagePDFToolkit.spec` and the `AppPublisher`/
@@ -56,8 +56,8 @@ ISCC installer\setup.iss
 .\installer\sign.ps1
 ```
 
-`sign.ps1` signs both `dist\ImagePDFToolkit.exe` and
-`dist\ImagePDFToolkit-Setup.exe` (skipping either if it isn't present),
+`sign.ps1` signs both `dist\FileForgeToolkit.exe` and
+`dist\FileForgeToolkit-Setup.exe` (skipping either if it isn't present),
 timestamps the signature (so it stays valid after the certificate expires),
 and verifies each signature afterward. Requires `signtool.exe`, which ships
 with the Windows SDK / Visual Studio Build Tools.
