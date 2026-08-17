@@ -13,14 +13,22 @@ from PySide6.QtWidgets import (
 from ui import icons as icon_lib
 from ui.components.animation import fade_in
 from ui import tokens
-from ui.components.workspace import DropWorkspace
+from ui.components.workspace import MAX_BATCH_FILES, DropWorkspace, FileGrid, clip_to_max_files
+from ui.pages.compare_pdf_page import ComparePdfPage
 from ui.pages.excel_to_pdf_page import ExcelToPdfPage
 from ui.pages.html_to_pdf_page import HtmlToPdfPage
 from ui.pages.image_resizer_page import ImageResizerPage
 from ui.pages.jpg_to_pdf_page import JpgToPdfPage
+from ui.pages.lock_pdf_page import LockPdfPage
+from ui.pages.pdf_forms_page import PdfFormsPage
 from ui.pages.png_to_jpg_page import PngToJpgPage
 from ui.pages.powerpoint_to_pdf_page import PowerpointToPdfPage
+from ui.pages.sign_pdf_page import SignPdfPage
+from ui.pages.split_pdf_page import SplitPdfPage
+from ui.pages.unlock_pdf_page import UnlockPdfPage
+from ui.pages.watermark_page import WatermarkPage
 from ui.pages.word_to_pdf_page import WordToPdfPage
+from tools.image_resizer import format_file_size
 
 _ACCENT = "#ef4444"
 _ICON_MUTED = "#9397a8"
@@ -53,6 +61,37 @@ _NON_PDF_TOOL_EXTENSIONS = {
 
 def _tool_extensions(page_class):
     return _NON_PDF_TOOL_EXTENSIONS.get(page_class, PDF_EXTENSIONS)
+
+
+# Tools whose page only accepts one file at a time (DropWorkspace(multiple=False)) —
+# these need to drop out of the suggestions once more than one file is on the bench,
+# since clicking them with a multi-file selection wouldn't work as expected.
+_SINGLE_FILE_ONLY_TOOLS = {
+    LockPdfPage,
+    UnlockPdfPage,
+    SignPdfPage,
+    WatermarkPage,
+    SplitPdfPage,
+    PdfFormsPage,
+    ComparePdfPage,
+    PngToJpgPage,
+}
+
+
+def _file_kind(path):
+    extension = os.path.splitext(path)[1].lower()
+    if extension in IMAGE_EXTENSIONS:
+        return "image"
+    if extension in PDF_EXTENSIONS:
+        return "pdf"
+    return "file"
+
+
+def _file_meta(path):
+    try:
+        return format_file_size(os.path.getsize(path))
+    except OSError:
+        return ""
 
 
 class QuickActionRow(QFrame):
@@ -140,6 +179,7 @@ class HomePage(QWidget):
         self.open_tool = open_tool
         self.sections = sections
         self._all_tools = [tool for _section_name, tools in sections for tool in tools]
+        self._dropped_paths = []
 
         self.setup_ui()
 
@@ -178,26 +218,44 @@ class HomePage(QWidget):
         self.drop_workspace.filesDropped.connect(self._on_files_dropped)
         self.drop_workspace.browseRequested.connect(self._browse)
         layout.addWidget(self.drop_workspace)
+        layout.addSpacing(14)
+
+        # =========================
+        # SELECTED FILES (populated after a file is dropped)
+        # =========================
+
+        self.file_grid = FileGrid(_file_kind, _file_meta)
+        self.file_grid.filesChanged.connect(self._on_file_grid_changed)
+        self.file_grid.hide()
+        layout.addWidget(self.file_grid)
         layout.addSpacing(18)
 
         # =========================
         # SUGGESTED TOOLS (populated after a file is dropped)
         # =========================
 
-        self.suggestions_heading = QLabel("")
-        self.suggestions_heading.setObjectName("sectionHeading")
-        self.suggestions_heading.hide()
-        layout.addWidget(self.suggestions_heading)
-        layout.addSpacing(10)
+        self.suggestions_card = QFrame()
+        self.suggestions_card.setObjectName("toolCard")
 
-        self.suggestions_container = QWidget()
-        self.suggestions_grid = QGridLayout(self.suggestions_container)
+        suggestions_card_layout = QVBoxLayout(self.suggestions_card)
+        suggestions_card_layout.setContentsMargins(20, 18, 20, 18)
+        suggestions_card_layout.setSpacing(14)
+
+        self.suggestions_heading = QLabel("")
+        self.suggestions_heading.setObjectName("toolTitle")
+        suggestions_card_layout.addWidget(self.suggestions_heading)
+
+        self.suggestions_grid_container = QWidget()
+        self.suggestions_grid = QGridLayout(self.suggestions_grid_container)
+        self.suggestions_grid.setContentsMargins(0, 0, 0, 0)
         self.suggestions_grid.setHorizontalSpacing(12)
         self.suggestions_grid.setVerticalSpacing(8)
         self.suggestions_grid.setColumnStretch(0, 1)
         self.suggestions_grid.setColumnStretch(1, 1)
-        self.suggestions_container.hide()
-        layout.addWidget(self.suggestions_container)
+        suggestions_card_layout.addWidget(self.suggestions_grid_container)
+
+        self.suggestions_card.hide()
+        layout.addWidget(self.suggestions_card)
         layout.addSpacing(22)
 
         # =========================
@@ -237,12 +295,53 @@ class HomePage(QWidget):
 
         extensions = " ".join(f"*{ext}" for ext in DROPPABLE_EXTENSIONS)
         paths, _ = QFileDialog.getOpenFileNames(
-            self, "Select a file", "", f"Supported files ({extensions})"
+            self, "Select files", "", f"Supported files ({extensions})"
         )
         if paths:
             self._on_files_dropped(paths)
 
     def _on_files_dropped(self, paths):
+
+        combined, truncated = clip_to_max_files(list(self._dropped_paths) + list(paths))
+        self._dropped_paths = combined
+        self._refresh_files()
+
+        if truncated:
+            from ui.components.feedback import CompletionDialog
+
+            CompletionDialog.warn(
+                self,
+                "Too Many Files",
+                f"Only the first {MAX_BATCH_FILES} files were kept "
+                f"({truncated} extra file(s) were not added).",
+            )
+
+    def _on_file_grid_changed(self, paths):
+        self._dropped_paths = paths
+        self._refresh_files()
+
+    def _refresh_files(self):
+
+        paths = self._dropped_paths
+
+        if not paths:
+            self.file_grid.hide()
+            self.drop_workspace.set_text(
+                "Drop a file to get started",
+                "Drag & drop an image, PDF, or document, or click to browse",
+            )
+            self._update_suggestions()
+            return
+
+        self.file_grid.set_files(paths)
+        self.file_grid.show()
+
+        plural = "file" if len(paths) == 1 else "files"
+        self.drop_workspace.set_text(f"{len(paths)} {plural} ready", "Drop more files or click to add")
+
+        self._update_suggestions()
+
+    def _update_suggestions(self):
 
         while self.suggestions_grid.count():
             item = self.suggestions_grid.takeAt(0)
@@ -250,22 +349,24 @@ class HomePage(QWidget):
             if widget:
                 widget.deleteLater()
 
+        paths = self._dropped_paths
+
         if not paths:
-            self.suggestions_heading.hide()
-            self.suggestions_container.hide()
+            self.suggestions_card.hide()
             return
 
         extension = os.path.splitext(paths[0])[1].lower()
         matches = [tool for tool in self._all_tools if extension in _tool_extensions(tool[3])]
 
+        if len(paths) > 1:
+            matches = [tool for tool in matches if tool[3] not in _SINGLE_FILE_ONLY_TOOLS]
+
         if not matches:
-            self.suggestions_heading.hide()
-            self.suggestions_container.hide()
+            self.suggestions_card.hide()
             return
 
         plural = "file" if len(paths) == 1 else "files"
         self.suggestions_heading.setText(f"What would you like to do with your {plural}?")
-        self.suggestions_heading.show()
 
         for index, (icon_name, title_text, description, page_class) in enumerate(matches):
             row = QuickActionRow(
@@ -277,4 +378,4 @@ class HomePage(QWidget):
             grid_row, grid_col = divmod(index, 2)
             self.suggestions_grid.addWidget(row, grid_row, grid_col)
 
-        self.suggestions_container.show()
+        self.suggestions_card.show()
