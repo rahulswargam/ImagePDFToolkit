@@ -6,8 +6,6 @@ from PIL import Image
 
 from tools.image_resizer import get_output_folder
 
-_MARGIN = 28
-
 _ASSETS_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "assets", "fonts")
 _WATERMARK_FONTS_DIR = os.path.join(_ASSETS_DIR, "watermark")
 _ROBOTO_FONT_PATH = os.path.join(_ASSETS_DIR, "Roboto-Variable.ttf")
@@ -100,41 +98,6 @@ def rotate_pdf(input_path, angle):
 
         base_name = os.path.splitext(os.path.basename(input_path))[0]
         output_path = _unique_pdf_path(get_output_folder(), base_name, "_rotated")
-        document.save(output_path, garbage=4, deflate=True)
-
-    return output_path
-
-
-def add_page_numbers(input_path, position="bottom-center", start_at=1, font_size=11):
-    """
-    Stamps a page number onto every page of a PDF.
-
-    Returns:
-        output_path
-    """
-
-    input_path = str(input_path)
-
-    with pymupdf.open(input_path) as document:
-
-        for index, page in enumerate(document):
-            text = str(start_at + index)
-            rect = page.rect
-            text_width = pymupdf.get_text_length(text, fontname="helv", fontsize=font_size)
-
-            if "left" in position:
-                x = rect.x0 + _MARGIN
-            elif "right" in position:
-                x = rect.x1 - _MARGIN - text_width
-            else:
-                x = (rect.x0 + rect.x1) / 2 - text_width / 2
-
-            y = rect.y1 - _MARGIN if "bottom" in position else rect.y0 + _MARGIN + font_size
-
-            page.insert_text((x, y), text, fontname="helv", fontsize=font_size, color=(0.35, 0.37, 0.42))
-
-        base_name = os.path.splitext(os.path.basename(input_path))[0]
-        output_path = _unique_pdf_path(get_output_folder(), base_name, "_numbered")
         document.save(output_path, garbage=4, deflate=True)
 
     return output_path
@@ -280,40 +243,6 @@ def add_image_watermark(input_path, image_path, opacity=30, x_percent=25, y_perc
 
         base_name = os.path.splitext(os.path.basename(input_path))[0]
         output_path = _unique_pdf_path(get_output_folder(), base_name, "_watermarked")
-        document.save(output_path, garbage=4, deflate=True)
-
-    return output_path
-
-
-def crop_pdf(input_path, margin_pt=36):
-    """
-    Crops every page inward by the given margin, in points (72pt = 1in).
-
-    Returns:
-        output_path
-    """
-
-    input_path = str(input_path)
-    margin_pt = max(0, float(margin_pt))
-
-    with pymupdf.open(input_path) as document:
-
-        for page in document:
-            rect = page.rect
-
-            if margin_pt * 2 >= min(rect.width, rect.height):
-                raise ValueError("Crop margin is too large for this page size.")
-
-            new_rect = pymupdf.Rect(
-                rect.x0 + margin_pt,
-                rect.y0 + margin_pt,
-                rect.x1 - margin_pt,
-                rect.y1 - margin_pt,
-            )
-            page.set_cropbox(new_rect)
-
-        base_name = os.path.splitext(os.path.basename(input_path))[0]
-        output_path = _unique_pdf_path(get_output_folder(), base_name, "_cropped")
         document.save(output_path, garbage=4, deflate=True)
 
     return output_path

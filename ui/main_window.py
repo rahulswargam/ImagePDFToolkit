@@ -20,34 +20,21 @@ from ui.components.nav import NavBreadcrumb, NavItem
 from ui.components.scroll import SmoothScrollArea
 from ui.components.feedback import Toast
 from ui.pages.home_page import HomePage
-from ui.pages.compare_pdf_page import ComparePdfPage
-from ui.pages.compress_pdf_page import CompressPdfPage
-from ui.pages.crop_pdf_page import CropPdfPage
-from ui.pages.excel_to_pdf_page import ExcelToPdfPage
-from ui.pages.extract_pages_page import ExtractPagesPage
-from ui.pages.html_to_pdf_page import HtmlToPdfPage
 from ui.pages.image_resizer_page import ImageResizerPage
 from ui.pages.jpg_to_pdf_page import JpgToPdfPage
 from ui.pages.lock_pdf_page import LockPdfPage
 from ui.pages.merge_pdf_page import MergePdfPage
 from ui.pages.organize_pdf_page import OrganizePdfPage
-from ui.pages.page_numbers_page import PageNumbersPage
 from ui.pages.pdf_forms_page import PdfFormsPage
 from ui.pages.pdf_to_jpg_page import PdfToJpgPage
-from ui.pages.pdf_to_pdfa_page import PdfToPdfaPage
 from ui.pages.pdf_to_word_page import PdfToWordPage
 from ui.pages.png_to_jpg_page import PngToJpgPage
-from ui.pages.powerpoint_to_pdf_page import PowerpointToPdfPage
-from ui.pages.redact_pdf_page import RedactPdfPage
 from ui.pages.remove_pages_page import RemovePagesPage
-from ui.pages.repair_pdf_page import RepairPdfPage
 from ui.pages.rotate_pdf_page import RotatePdfPage
 from ui.pages.settings_page import SettingsPage
 from ui.pages.sign_pdf_page import SignPdfPage
-from ui.pages.split_pdf_page import SplitPdfPage
 from ui.pages.unlock_pdf_page import UnlockPdfPage
 from ui.pages.watermark_page import WatermarkPage
-from ui.pages.word_to_pdf_page import WordToPdfPage
 from ui.styles import DARK_STYLE, LIGHT_STYLE
 from version import APP_VERSION
 
@@ -62,36 +49,22 @@ IMAGE_TOOLS = [
 
 ORGANIZE_TOOLS = [
     ("merge", "Merge PDF", "Combine multiple PDFs into one document.", MergePdfPage),
-    ("split", "Split PDF", "Split a PDF into separate single-page files.", SplitPdfPage),
     ("file-minus", "Remove Pages", "Delete specific pages from a PDF.", RemovePagesPage),
-    ("file-extract", "Extract Pages", "Pull specific pages into a new PDF.", ExtractPagesPage),
     ("grid", "Organize PDF", "Reorder, rotate, or delete pages visually.", OrganizePdfPage),
-]
-
-OPTIMIZE_TOOLS = [
-    ("minimize", "Compress PDF", "Shrink PDF file size without losing quality.", CompressPdfPage),
-    ("file-pulse", "Repair PDF", "Fix corrupted or malformed PDF files.", RepairPdfPage),
 ]
 
 CONVERT_TO_PDF_TOOLS = [
     ("layers", "JPG → PDF", "Convert one or multiple JPG images into a PDF.", JpgToPdfPage),
-    ("file-word", "Word → PDF", "Convert Word documents into PDF, using Microsoft Word when installed.", WordToPdfPage),
-    ("file-powerpoint", "PowerPoint → PDF", "Convert PowerPoint presentations into PDF, using PowerPoint when installed.", PowerpointToPdfPage),
-    ("file-excel", "Excel → PDF", "Convert Excel workbooks into PDF, using Excel when installed.", ExcelToPdfPage),
-    ("file-code", "HTML → PDF", "Convert an HTML file into a PDF document.", HtmlToPdfPage),
 ]
 
 CONVERT_FROM_PDF_TOOLS = [
     ("image", "PDF → JPG", "Convert PDF pages into high-quality JPG images.", PdfToJpgPage),
     ("file-word", "PDF → Word", "Convert a PDF into an editable Word document.", PdfToWordPage),
-    ("pdf-a", "Convert to PDF/A", "Best-effort PDF/A conversion for long-term archival.", PdfToPdfaPage),
 ]
 
 EDIT_TOOLS = [
     ("rotate-cw", "Rotate PDF", "Rotate every page of a PDF.", RotatePdfPage),
-    ("hash", "Add Page Numbers", "Stamp page numbers onto a PDF.", PageNumbersPage),
     ("droplet", "Add Watermark", "Overlay a text watermark across a PDF.", WatermarkPage),
-    ("crop", "Crop PDF", "Crop the margins of every page.", CropPdfPage),
     ("clipboard", "PDF Forms", "Fill in a PDF's fillable form fields.", PdfFormsPage),
 ]
 
@@ -99,14 +72,11 @@ SECURITY_TOOLS = [
     ("lock", "Protect PDF", "Protect your PDF document with a password.", LockPdfPage),
     ("unlock", "Unlock PDF", "Remove password protection from a PDF.", UnlockPdfPage),
     ("edit-3", "Sign PDF", "Stamp a visual signature onto a PDF.", SignPdfPage),
-    ("eye-off", "Redact PDF", "Permanently black out sensitive text.", RedactPdfPage),
-    ("columns", "Compare PDF", "Find text differences between two PDFs.", ComparePdfPage),
 ]
 
 NAV_SECTIONS = [
     ("IMAGE", IMAGE_TOOLS),
     ("ORGANIZE PDF", ORGANIZE_TOOLS),
-    ("OPTIMIZE PDF", OPTIMIZE_TOOLS),
     ("CONVERT TO PDF", CONVERT_TO_PDF_TOOLS),
     ("CONVERT FROM PDF", CONVERT_FROM_PDF_TOOLS),
     ("EDIT PDF", EDIT_TOOLS),
@@ -114,7 +84,7 @@ NAV_SECTIONS = [
 ]
 
 ALL_TOOLS = (
-    IMAGE_TOOLS + ORGANIZE_TOOLS + OPTIMIZE_TOOLS
+    IMAGE_TOOLS + ORGANIZE_TOOLS
     + CONVERT_TO_PDF_TOOLS + CONVERT_FROM_PDF_TOOLS + EDIT_TOOLS + SECURITY_TOOLS
 )
 
